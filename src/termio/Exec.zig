@@ -686,11 +686,18 @@ const Subprocess = struct {
     /// a potential execution on the host.
     const FlatpakHostCommand = if (build_config.flatpak) internal_os.FlatpakHostCommand else void;
 
-    const c = @cImport({
+    const c = if (builtin.cpu.arch != .wasm32) @cImport({
         @cInclude("errno.h");
         @cInclude("signal.h");
         @cInclude("unistd.h");
-    });
+    }) else struct {
+        pub const pid_t = Command.PidT;
+        pub const ESRCH = 0x03;
+        pub fn getpgid(pid: pid_t) pid_t {
+            _ = pid;
+            return 100;
+        }
+    };
 
     arena: std.heap.ArenaAllocator,
     cwd: ?[]const u8,
@@ -744,7 +751,7 @@ const Subprocess = struct {
 
             // Assume that the resources directory is adjacent to the terminfo
             // database
-            var buf: [std.fs.max_path_bytes]u8 = undefined;
+            var buf: [if (builtin.cpu.arch == .wasm32) 4096 else std.fs.max_path_bytes]u8 = undefined;
             const dir = try std.fmt.bufPrint(&buf, "{s}/terminfo", .{
                 std.fs.path.dirname(base) orelse unreachable,
             });
@@ -762,8 +769,8 @@ const Subprocess = struct {
 
         // Add our binary to the path if we can find it.
         ghostty_path: {
-            var exe_buf: [std.fs.max_path_bytes]u8 = undefined;
-            const exe_bin_path = std.fs.selfExePath(&exe_buf) catch |err| {
+            var exe_buf: [if (builtin.cpu.arch == .wasm32) 4096 else std.fs.max_path_bytes]u8 = undefined;
+            const exe_bin_path = if (builtin.cpu.arch == .wasm32) "ghostty-wasm.wasm" else std.fs.selfExePath(&exe_buf) catch |err| {
                 log.warn("failed to get ghostty exe path err={}", .{err});
                 break :ghostty_path;
             };
@@ -865,6 +872,7 @@ const Subprocess = struct {
 
         // Setup our shell integration, if we can.
         const integrated_shell: ?shell_integration.Shell, const shell_command: []const u8 = shell: {
+            if (builtin.cpu.arch == .wasm32) break :shell .{ null, "" };
             const default_shell_command = cfg.command orelse switch (builtin.os.tag) {
                 .windows => "cmd.exe",
                 else => "sh",
@@ -1264,6 +1272,7 @@ const Subprocess = struct {
 
                     _ = try command.wait(false);
                 },
+                .freestanding, .wasi => {},
 
                 else => if (getpgid(pid)) |pgid| {
                     // It is possible to send a killpg between the time that
@@ -1296,7 +1305,7 @@ const Subprocess = struct {
                         const res = posix.waitpid(pid, std.c.W.NOHANG);
                         log.debug("waitpid result={}", .{res.pid});
                         if (res.pid != 0) break;
-                        std.time.sleep(10 * std.time.ns_per_ms);
+                        internal_os.sleep(10 * std.time.ns_per_ms);
                     }
                 },
             }
@@ -1319,7 +1328,7 @@ const Subprocess = struct {
             const pgid = c.getpgid(pid);
             if (pgid == my_pgid) {
                 log.warn("pgid is our own, retrying", .{});
-                std.time.sleep(10 * std.time.ns_per_ms);
+                internal_os.sleep(10 * std.time.ns_per_ms);
                 continue;
             }
 
