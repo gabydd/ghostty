@@ -241,7 +241,7 @@ fn threadMain_(self: *Thread) !void {
     self.startDrawTimer();
 
     // Run
-    log.debug("starting renderer thread", .{});
+    log.err("starting renderer thread", .{});
     defer log.debug("starting renderer thread shutdown", .{});
     _ = try self.loop.run(.until_done);
 }
@@ -491,6 +491,7 @@ fn wakeupCallback(
     };
 
     const t = self_.?;
+    log.err("wakeup", .{});
 
     // When we wake up, we check the mailbox. Mailbox producers should
     // wake up our thread after publishing.
