@@ -34,11 +34,7 @@ pub fn build(b: *std.Build) !void {
     if (b.systemIntegrationOption("freetype", .{})) {
         lib.linkSystemLibrary2("freetype2", dynamic_link_opts);
     } else {
-        const freetype = b.dependency("freetype", .{
-            .target = target,
-            .optimize = optimize,
-            .@"enable-libpng" = true,
-        });
+        const freetype = b.dependency("freetype", .{});
         lib.linkLibrary(freetype.artifact("freetype"));
         module.addIncludePath(freetype.builder.dependency("freetype", .{}).path("include"));
     }
@@ -78,7 +74,7 @@ pub fn build(b: *std.Build) !void {
 
     if (target.result.isDarwin()) {
         if (!target.query.isNative()) {
-            try @import("apple_sdk").addPaths(b, &lib.root_module);
+            try @import("apple_sdk").addPaths(b, lib.root_module);
             try @import("apple_sdk").addPaths(b, module);
         }
         lib.addCSourceFile(.{

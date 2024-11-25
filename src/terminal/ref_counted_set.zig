@@ -121,7 +121,7 @@ pub fn RefCountedSet(
         /// Id 0 is reserved for unused items.
         next_id: Id = 1,
 
-        layout: Layout,
+        lay: Layout,
 
         /// An instance of the context structure.
         context: Context,
@@ -199,7 +199,7 @@ pub fn RefCountedSet(
             return .{
                 .table = table,
                 .items = items,
-                .layout = l,
+                .lay = l,
                 .context = context,
             };
         }
@@ -254,7 +254,7 @@ pub fn RefCountedSet(
             }
 
             // If the item doesn't exist, we need an available ID.
-            if (self.next_id >= self.layout.cap) {
+            if (self.next_id >= self.lay.cap) {
                 // Arbitrarily chosen, threshold for rehashing.
                 // If less than 90% of currently allocated IDs
                 // correspond to living items, we should rehash.
@@ -263,7 +263,7 @@ pub fn RefCountedSet(
                 // memory or rehashing again very soon if we
                 // rehash with only a few IDs left.
                 const rehash_threshold = 0.9;
-                if (self.living < @as(Id, @intFromFloat(@as(f64, @floatFromInt(self.layout.cap)) * rehash_threshold))) {
+                if (self.living < @as(Id, @intFromFloat(@as(f64, @floatFromInt(self.lay.cap)) * rehash_threshold))) {
                     return AddError.NeedsRehash;
                 }
 
@@ -334,7 +334,7 @@ pub fn RefCountedSet(
         /// Asserts that the item's reference count is greater than 0.
         pub fn use(self: *const Self, base: anytype, id: Id) void {
             assert(id > 0);
-            assert(id < self.layout.cap);
+            assert(id < self.lay.cap);
 
             const items = self.items.ptr(base);
             const item = &items[id];
@@ -353,7 +353,7 @@ pub fn RefCountedSet(
         /// Asserts that the item's reference count is greater than 0.
         pub fn useMultiple(self: *const Self, base: anytype, id: Id, n: RefCountInt) void {
             assert(id > 0);
-            assert(id < self.layout.cap);
+            assert(id < self.lay.cap);
 
             const items = self.items.ptr(base);
             const item = &items[id];
@@ -372,7 +372,7 @@ pub fn RefCountedSet(
         /// Asserts that the item's reference count is greater than 0.
         pub fn get(self: *const Self, base: anytype, id: Id) *T {
             assert(id > 0);
-            assert(id < self.layout.cap);
+            assert(id < self.lay.cap);
 
             const items = self.items.ptr(base);
             const item = &items[id];
@@ -387,7 +387,7 @@ pub fn RefCountedSet(
         /// Asserts that the item's reference count is greater than 0.
         pub fn release(self: *Self, base: anytype, id: Id) void {
             assert(id > 0);
-            assert(id < self.layout.cap);
+            assert(id < self.lay.cap);
 
             const items = self.items.ptr(base);
             const item = &items[id];
@@ -402,7 +402,7 @@ pub fn RefCountedSet(
         /// Asserts that the item's reference count is at least `n`.
         pub fn releaseMultiple(self: *Self, base: anytype, id: Id, n: Id) void {
             assert(id > 0);
-            assert(id < self.layout.cap);
+            assert(id < self.lay.cap);
 
             const items = self.items.ptr(base);
             const item = &items[id];
@@ -418,7 +418,7 @@ pub fn RefCountedSet(
         /// Get the ref count for an item by its ID.
         pub fn refCount(self: *const Self, base: anytype, id: Id) RefCountInt {
             assert(id > 0);
-            assert(id < self.layout.cap);
+            assert(id < self.lay.cap);
 
             const items = self.items.ptr(base);
             const item = &items[id];
@@ -438,7 +438,7 @@ pub fn RefCountedSet(
 
             const item = items[id];
 
-            if (item.meta.bucket > self.layout.table_cap) return;
+            if (item.meta.bucket > self.lay.table_cap) return;
 
             assert(table[item.meta.bucket] == id);
 
@@ -453,7 +453,7 @@ pub fn RefCountedSet(
             items[id] = .{};
 
             var p: Id = item.meta.bucket;
-            var n: Id = (p +% 1) & self.layout.table_mask;
+            var n: Id = (p +% 1) & self.lay.table_mask;
 
             while (table[n] != 0 and items[table[n]].meta.psl > 0) {
                 items[table[n]].meta.bucket = p;
@@ -462,7 +462,7 @@ pub fn RefCountedSet(
                 self.psl_stats[items[table[n]].meta.psl] += 1;
                 table[p] = table[n];
                 p = n;
-                n = (p +% 1) & self.layout.table_mask;
+                n = (p +% 1) & self.lay.table_mask;
             }
 
             while (self.max_psl > 0 and self.psl_stats[self.max_psl] == 0) {
@@ -486,7 +486,7 @@ pub fn RefCountedSet(
             const hash: u64 = ctx.hash(value);
 
             for (0..self.max_psl + 1) |i| {
-                const p: usize = @intCast((hash +% i) & self.layout.table_mask);
+                const p: usize = @intCast((hash +% i) & self.lay.table_mask);
                 const id = table[p];
 
                 // Empty bucket, our item cannot have probed to
@@ -563,8 +563,8 @@ pub fn RefCountedSet(
 
             var chosen_id: Id = new_id;
 
-            for (0..self.layout.table_cap - 1) |i| {
-                const p: Id = @intCast((hash +% i) & self.layout.table_mask);
+            for (0..self.lay.table_cap - 1) |i| {
+                const p: Id = @intCast((hash +% i) & self.lay.table_mask);
                 const id = table[p];
 
                 // Empty bucket, put our held item in to it and break.
@@ -659,7 +659,7 @@ pub fn RefCountedSet(
 
                 var psl_stats: [32]Id = [_]Id{0} ** 32;
 
-                for (items[0..self.layout.cap], 0..) |item, id| {
+                for (items[0..self.lay.cap], 0..) |item, id| {
                     if (item.meta.bucket < std.math.maxInt(Id)) {
                         assert(table[item.meta.bucket] == id);
                         psl_stats[item.meta.psl] += 1;
@@ -672,13 +672,13 @@ pub fn RefCountedSet(
 
                 psl_stats = [_]Id{0} ** 32;
 
-                for (table[0..self.layout.table_cap], 0..) |id, bucket| {
+                for (table[0..self.lay.table_cap], 0..) |id, bucket| {
                     const item = items[id];
                     if (item.meta.bucket < std.math.maxInt(Id)) {
                         assert(item.meta.bucket == bucket);
 
                         const hash: u64 = ctx.hash(item.value);
-                        const p: usize = @intCast((hash +% item.meta.psl) & self.layout.table_mask);
+                        const p: usize = @intCast((hash +% item.meta.psl) & self.lay.table_mask);
                         assert(p == bucket);
 
                         psl_stats[item.meta.psl] += 1;

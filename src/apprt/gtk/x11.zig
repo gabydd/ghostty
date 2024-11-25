@@ -130,7 +130,7 @@ const Funcs = struct {
         defer libX11.close();
 
         var result: Funcs = undefined;
-        inline for (@typeInfo(Funcs).Struct.fields) |field| {
+        inline for (@typeInfo(Funcs).@"struct".fields) |field| {
             const name = comptime name: {
                 const null_term = field.name ++ .{0};
                 break :name null_term[0..field.name.len :0];

@@ -373,7 +373,7 @@ fn renderScreenWindow(self: *Inspector) void {
 
             if (kitty_flags.int() != 0) {
                 const Flags = @TypeOf(kitty_flags);
-                inline for (@typeInfo(Flags).Struct.fields) |field| {
+                inline for (@typeInfo(Flags).@"struct".fields) |field| {
                     {
                         const value = @field(kitty_flags, field.name);
 

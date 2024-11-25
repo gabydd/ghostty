@@ -232,13 +232,6 @@ test "encode" {
     var buf_stream = std.io.fixedBufferStream(&buf);
     try src.encode(buf_stream.writer());
 
-    const expected =
-        \\ghostty|xterm-ghostty|Ghostty,
-        \\	am,
-        \\	ccc@,
-        \\	colors#256,
-        \\	bel=^G,
-        \\
-    ;
+    const expected = "ghostty|xterm-ghostty|Ghostty,\n\tam,\tccc@,\n\tcolors#256,\tbel=^G,\n";
     try std.testing.expectEqualStrings(@as([]const u8, expected), buf_stream.getWritten());
 }

@@ -646,7 +646,7 @@ fn initImagePipeline(device: objc.Object, library: objc.Object) !objc.Object {
 }
 
 fn autoAttribute(T: type, attrs: objc.Object) void {
-    inline for (@typeInfo(T).Struct.fields, 0..) |field, i| {
+    inline for (@typeInfo(T).@"struct".fields, 0..) |field, i| {
         const offset = @offsetOf(T, field.name);
 
         const FT = switch (@typeInfo(field.type)) {

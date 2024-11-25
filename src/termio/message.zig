@@ -139,7 +139,7 @@ pub fn MessageData(comptime Elem: type, comptime small_size: comptime_int) type 
         /// This can't and will never detect stable pointers.
         pub fn init(alloc: Allocator, data: anytype) !Self {
             switch (@typeInfo(@TypeOf(data))) {
-                .Pointer => |info| {
+                .pointer => |info| {
                     assert(info.size == .Slice);
                     assert(info.child == Elem);
 

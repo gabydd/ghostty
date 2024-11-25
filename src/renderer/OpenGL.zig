@@ -30,7 +30,6 @@ const custom = @import("opengl/custom.zig");
 const Image = gl_image.Image;
 const ImageMap = gl_image.ImageMap;
 const ImagePlacementList = std.ArrayListUnmanaged(gl_image.Placement);
-const Mutex = @import("Mutex.zig");
 
 const log = std.log.scoped(.grid);
 
@@ -41,8 +40,8 @@ pub const single_threaded_draw = if (@hasDecl(apprt.Surface, "opengl_single_thre
     apprt.Surface.opengl_single_threaded_draw
 else
     false;
-const DrawMutex = if (single_threaded_draw) Mutex else void;
-const drawMutexZero = if (DrawMutex == void) void{} else .{};
+const DrawMutex = if (single_threaded_draw) std.Thread.Mutex else void;
+const drawMutexZero = if (DrawMutex == void) void{} else std.Thread.Mutex{};
 
 alloc: std.mem.Allocator,
 
@@ -787,12 +786,12 @@ pub fn updateFrame(
         // the entire screen. This can be optimized in the future.
         const full_rebuild: bool = rebuild: {
             {
-                const Int = @typeInfo(terminal.Terminal.Dirty).Struct.backing_integer.?;
+                const Int = @typeInfo(terminal.Terminal.Dirty).@"struct".backing_integer.?;
                 const v: Int = @bitCast(state.terminal.flags.dirty);
                 if (v > 0) break :rebuild true;
             }
             {
-                const Int = @typeInfo(terminal.Screen.Dirty).Struct.backing_integer.?;
+                const Int = @typeInfo(terminal.Screen.Dirty).@"struct".backing_integer.?;
                 const v: Int = @bitCast(state.terminal.screen.dirty);
                 if (v > 0) break :rebuild true;
             }

@@ -46,7 +46,7 @@ fn buildOniguruma(
 
     if (target.result.isDarwin()) {
         const apple_sdk = @import("apple_sdk");
-        try apple_sdk.addPaths(b, &lib.root_module);
+        try apple_sdk.addPaths(b, lib.root_module);
     }
 
     lib.addConfigHeader(b.addConfigHeader(.{
@@ -64,10 +64,10 @@ fn buildOniguruma(
         .HAVE_SYS_TYPES_H = true,
         .HAVE_UNISTD_H = true,
         .HAVE_INTTYPES_H = true,
-        .SIZEOF_INT = t.c_type_byte_size(.int),
-        .SIZEOF_LONG = t.c_type_byte_size(.long),
-        .SIZEOF_LONG_LONG = t.c_type_byte_size(.longlong),
-        .SIZEOF_VOIDP = t.ptrBitWidth() / t.c_type_bit_size(.char),
+        .SIZEOF_INT = t.cTypeByteSize(.int),
+        .SIZEOF_LONG = t.cTypeByteSize(.long),
+        .SIZEOF_LONG_LONG = t.cTypeByteSize(.longlong),
+        .SIZEOF_VOIDP = t.ptrBitWidth() / t.cTypeBitSize(.char),
     }));
 
     var flags = std.ArrayList([]const u8).init(b.allocator);

@@ -99,7 +99,7 @@ pub const ModePacked = packed_struct: {
         };
     }
 
-    break :packed_struct @Type(.{ .Struct = .{
+    break :packed_struct @Type(.{ .@"struct" = .{
         .layout = .@"packed",
         .fields = &fields,
         .decls = &.{},
@@ -121,7 +121,7 @@ pub const Mode = mode_enum: {
         };
     }
 
-    break :mode_enum @Type(.{ .Enum = .{
+    break :mode_enum @Type(.{ .@"enum" = .{
         .tag_type = ModeTag.Backing,
         .fields = &fields,
         .decls = &.{},
@@ -132,7 +132,7 @@ pub const Mode = mode_enum: {
 /// The tag type for our enum is a u16 but we use a packed struct
 /// in order to pack the ansi bit into the tag.
 pub const ModeTag = packed struct(u16) {
-    pub const Backing = @typeInfo(@This()).Struct.backing_integer.?;
+    pub const Backing = @typeInfo(@This()).@"struct".backing_integer.?;
     value: u15,
     ansi: bool = false,
 

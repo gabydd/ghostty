@@ -34,7 +34,7 @@ fn genConfig(alloc: std.mem.Allocator, writer: anytype) !void {
         \\
     );
 
-    inline for (@typeInfo(Config).Struct.fields) |field| {
+    inline for (@typeInfo(Config).@"struct".fields) |field| {
         if (field.name[0] == '_') continue;
         try genConfigField(alloc, writer, ast, field.name);
     }
@@ -126,7 +126,7 @@ fn genKeybindActions(alloc: std.mem.Allocator, writer: anytype) !void {
         \\
     );
 
-    inline for (@typeInfo(KeybindAction).Union.fields) |field| {
+    inline for (@typeInfo(KeybindAction).@"union".fields) |field| {
         if (field.name[0] == '_') continue;
         try genConfigField(alloc, writer, ast, field.name);
     }

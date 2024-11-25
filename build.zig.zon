@@ -4,23 +4,14 @@
     .paths = .{""},
     .dependencies = .{
         // Zig libs
-        .libxev = .{
-            .url = "https://github.com/gabydd/libxev/archive/2f9cc6614ef857e757564a9b43d039c75eb7c075.tar.gz",
-            .hash = "12209ec75c84f8fbbc0421ce4062e1adf619064153292aa34c734ade9cbbc5988c28",
-        },
+        .libxev = .{ .path = "../xev" },
         .mach_glfw = .{
             .url = "https://github.com/mitchellh/mach-glfw/archive/37c2995f31abcf7e8378fba68ddcf4a3faa02de0.tar.gz",
             .hash = "12206ed982e709e565d536ce930701a8c07edfd2cfdce428683f3f2a601d37696a62",
             .lazy = true,
         },
-        .zig_objc = .{
-            .url = "https://github.com/mitchellh/zig-objc/archive/9b8ba849b0f58fe207ecd6ab7c147af55b17556e.tar.gz",
-            .hash = "1220e17e64ef0ef561b3e4b9f3a96a2494285f2ec31c097721bf8c8677ec4415c634",
-        },
-        .zig_js = .{
-            .url = "https://github.com/mitchellh/zig-js/archive/d0b8b0a57c52fbc89f9d9fecba75ca29da7dd7d1.tar.gz",
-            .hash = "12205a66d423259567764fa0fc60c82be35365c21aeb76c5a7dc99698401f4f6fefc",
-        },
+        .zig_objc = .{ .path = "../zig-objc" },
+        .zig_js = .{ .path = "../zig-js" },
         .ziglyph = .{
             .url = "https://deps.files.ghostty.org/ziglyph-b89d43d1e3fb01b6074bc1f7fc980324b04d26a5.tar.gz",
             .hash = "12207831bce7d4abce57b5a98e8f3635811cfefd160bca022eb91fe905d36a02cf25",
@@ -52,17 +43,8 @@
             .url = "https://github.com/mbadolato/iTerm2-Color-Schemes/archive/d6c42066b3045292e0b1154ad84ff22d6863ebf7.tar.gz",
             .hash = "12204358b2848ffd993d3425055bff0a5ba9b1b60bead763a6dea0517965d7290a6c",
         },
-        .vaxis = .{
-            .url = "git+https://github.com/rockorager/libvaxis/?ref=main#6d729a2dc3b934818dffe06d2ba3ce02841ed74b",
-            .hash = "12200df4ebeaed45de26cb2c9f3b6f3746d8013b604e035dae658f86f586c8c91d2f",
-        },
-        .zf = .{
-            .url = "git+https://github.com/natecraddock/zf/?ref=main#ed99ca18b02dda052e20ba467e90b623c04690dd",
-            .hash = "1220edc3b8d8bedbb50555947987e5e8e2f93871ca3c8e8d4cc8f1377c15b5dd35e8",
-        },
-        .z2d = .{
-            .url = "git+https://github.com/vancluever/z2d?ref=v0.4.0#4638bb02a9dc41cc2fb811f092811f6a951c752a",
-            .hash = "12201f0d542e7541cf492a001d4d0d0155c92f58212fbcb0d224e95edeba06b5416a",
-        },
+        .vaxis = .{ .path = "../libvaxis" },
+        .zf = .{ .path = "../zf" },
+        .z2d = .{ .path = "../z2d" },
     },
 }

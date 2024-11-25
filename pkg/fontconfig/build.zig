@@ -6,11 +6,11 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
 
     const libxml2_enabled = b.option(bool, "enable-libxml2", "Build libxml2") orelse true;
-    const libxml2_iconv_enabled = b.option(
-        bool,
-        "enable-libxml2-iconv",
-        "Build libxml2 with iconv",
-    ) orelse (target.result.os.tag != .windows);
+    // const libxml2_iconv_enabled = b.option(
+    //     bool,
+    //     "enable-libxml2-iconv",
+    //     "Build libxml2 with iconv",
+    // ) orelse (target.result.os.tag != .windows);
     const freetype_enabled = b.option(bool, "enable-freetype", "Build freetype") orelse true;
 
     const module = b.addModule("fontconfig", .{ .root_source_file = b.path("main.zig") });
@@ -147,7 +147,7 @@ pub fn build(b: *std.Build) !void {
         } else {
             const freetype_dep = b.dependency(
                 "freetype",
-                .{ .target = target, .optimize = optimize },
+                .{},
             );
             lib.linkLibrary(freetype_dep.artifact("freetype"));
         }
@@ -171,11 +171,7 @@ pub fn build(b: *std.Build) !void {
         if (b.systemIntegrationOption("libxml2", .{})) {
             lib.linkSystemLibrary2("libxml-2.0", dynamic_link_opts);
         } else {
-            const libxml2_dep = b.dependency("libxml2", .{
-                .target = target,
-                .optimize = optimize,
-                .iconv = libxml2_iconv_enabled,
-            });
+            const libxml2_dep = b.dependency("libxml2", .{});
             lib.linkLibrary(libxml2_dep.artifact("xml2"));
         }
     }

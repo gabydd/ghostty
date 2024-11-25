@@ -36,7 +36,7 @@ pub fn run(alloc: Allocator) !u8 {
 
     const stdout = std.io.getStdOut().writer();
     const info = @typeInfo(help_strings.KeybindAction);
-    inline for (info.Struct.decls) |field| {
+    inline for (info.@"struct".decls) |field| {
         try stdout.print("{s}", .{field.name});
         if (opts.docs) {
             try stdout.print(":\n", .{});

@@ -421,7 +421,7 @@ pub const Action = union(enum) {
     ///
     crash: CrashThread,
 
-    pub const Key = @typeInfo(Action).Union.tag_type.?;
+    pub const Key = @typeInfo(Action).@"union".tag_type.?;
 
     pub const CrashThread = enum {
         main,
@@ -516,10 +516,10 @@ pub const Action = union(enum) {
         param: []const u8,
     ) !field.type {
         return switch (@typeInfo(field.type)) {
-            .Enum => try parseEnum(field.type, param),
-            .Int => try parseInt(field.type, param),
-            .Float => try parseFloat(field.type, param),
-            .Struct => |info| blk: {
+            .@"enum" => try parseEnum(field.type, param),
+            .int => try parseInt(field.type, param),
+            .float => try parseFloat(field.type, param),
+            .@"struct" => |info| blk: {
                 // Only tuples are supported to avoid ambiguity with field
                 // ordering
                 comptime assert(info.is_tuple);
@@ -529,9 +529,9 @@ pub const Action = union(enum) {
                 inline for (info.fields) |field_| {
                     const next = it.next() orelse return Error.InvalidFormat;
                     @field(value, field_.name) = switch (@typeInfo(field_.type)) {
-                        .Enum => try parseEnum(field_.type, next),
-                        .Int => try parseInt(field_.type, next),
-                        .Float => try parseFloat(field_.type, next),
+                        .@"enum" => try parseEnum(field_.type, next),
+                        .int => try parseInt(field_.type, next),
+                        .float => try parseFloat(field_.type, next),
                         else => unreachable,
                     };
                 }
@@ -559,7 +559,7 @@ pub const Action = union(enum) {
         // An action name is always required
         if (action.len == 0) return Error.InvalidFormat;
 
-        const actionInfo = @typeInfo(Action).Union;
+        const actionInfo = @typeInfo(Action).@"union";
         inline for (actionInfo.fields) |field| {
             if (std.mem.eql(u8, action, field.name)) {
                 // If the field type is void we expect no value
@@ -679,7 +679,7 @@ pub const Action = union(enum) {
     /// Returns a union type that only contains actions that are scoped to
     /// the given scope.
     pub fn Scoped(comptime s: Scope) type {
-        const all_fields = @typeInfo(Action).Union.fields;
+        const all_fields = @typeInfo(Action).@"union".fields;
 
         // Find all fields that are app-scoped
         var i: usize = 0;
@@ -695,9 +695,9 @@ pub const Action = union(enum) {
         }
 
         // Build our union
-        return @Type(.{ .Union = .{
+        return @Type(.{ .@"union" = .{
             .layout = .auto,
-            .tag_type = @Type(.{ .Enum = .{
+            .tag_type = @Type(.{ .@"enum" = .{
                 .tag_type = std.math.IntFittingRange(0, i),
                 .fields = enum_fields[0..i],
                 .decls = &.{},
@@ -770,10 +770,10 @@ pub const Action = union(enum) {
             void => {},
             []const u8 => try writer.print("{s}", .{value}),
             else => switch (value_info) {
-                .Enum => try writer.print("{s}", .{@tagName(value)}),
-                .Float => try writer.print("{d}", .{value}),
-                .Int => try writer.print("{d}", .{value}),
-                .Struct => |info| if (!info.is_tuple) {
+                .@"enum" => try writer.print("{s}", .{@tagName(value)}),
+                .float => try writer.print("{d}", .{value}),
+                .int => try writer.print("{d}", .{value}),
+                .@"struct" => |info| if (!info.is_tuple) {
                     try writer.print("{} (not configurable)", .{value});
                 } else {
                     inline for (info.fields, 0..) |field, i| {
@@ -804,13 +804,13 @@ pub const Action = union(enum) {
         value: anytype,
     ) Allocator.Error!@TypeOf(value) {
         return switch (@typeInfo(@TypeOf(value))) {
-            .Void,
-            .Int,
-            .Float,
-            .Enum,
+            .void,
+            .int,
+            .float,
+            .@"enum",
             => value,
 
-            .Pointer => |info| slice: {
+            .pointer => |info| slice: {
                 comptime assert(info.size == .Slice);
                 break :slice try alloc.dupe(
                     info.child,
@@ -818,7 +818,7 @@ pub const Action = union(enum) {
                 );
             },
 
-            .Struct => |info| if (info.is_tuple)
+            .@"struct" => |info| if (info.is_tuple)
                 value
             else
                 try value.clone(alloc),
@@ -841,7 +841,7 @@ pub const Action = union(enum) {
     /// Hash the action into the given hasher.
     fn hashIncremental(self: Action, hasher: anytype) void {
         // Always has the active tag.
-        const Tag = @typeInfo(Action).Union.tag_type.?;
+        const Tag = @typeInfo(Action).@"union".tag_type.?;
         std.hash.autoHash(hasher, @as(Tag, self));
 
         // Hash the value of the field.
@@ -948,7 +948,7 @@ pub const Trigger = struct {
             if (part.len == 0) return Error.InvalidFormat;
 
             // Check if its a modifier
-            const modsInfo = @typeInfo(key.Mods).Struct;
+            const modsInfo = @typeInfo(key.Mods).@"struct";
             inline for (modsInfo.fields) |field| {
                 if (field.type == bool) {
                     if (std.mem.eql(u8, part, field.name)) {
@@ -983,7 +983,7 @@ pub const Trigger = struct {
             const key_part = if (physical) part[physical_prefix.len..] else part;
 
             // Check if its a key
-            const keysInfo = @typeInfo(key.Key).Enum;
+            const keysInfo = @typeInfo(key.Key).@"enum";
             inline for (keysInfo.fields) |field| {
                 if (!std.mem.eql(u8, field.name, "invalid")) {
                     if (std.mem.eql(u8, key_part, field.name)) {

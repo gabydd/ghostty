@@ -991,12 +991,12 @@ pub fn updateFrame(
         // the entire screen. This can be optimized in the future.
         const full_rebuild: bool = rebuild: {
             {
-                const Int = @typeInfo(terminal.Terminal.Dirty).Struct.backing_integer.?;
+                const Int = @typeInfo(terminal.Terminal.Dirty).@"struct".backing_integer.?;
                 const v: Int = @bitCast(state.terminal.flags.dirty);
                 if (v > 0) break :rebuild true;
             }
             {
-                const Int = @typeInfo(terminal.Screen.Dirty).Struct.backing_integer.?;
+                const Int = @typeInfo(terminal.Screen.Dirty).@"struct".backing_integer.?;
                 const v: Int = @bitCast(state.terminal.screen.dirty);
                 if (v > 0) break :rebuild true;
             }

@@ -36,7 +36,7 @@
       pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
     in {
       devShell.${system} = pkgs-stable.callPackage ./nix/devShell.nix {
-        zig = zig.packages.${system}."0.13.0";
+        zig = zig.packages.${system}.master;
         wraptest = pkgs-stable.callPackage ./nix/wraptest.nix {};
       };
 

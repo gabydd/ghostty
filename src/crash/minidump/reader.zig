@@ -46,8 +46,8 @@ pub fn Reader(comptime S: type) type {
         stream_directory_rva: u32,
 
         const SourceCallable = switch (@typeInfo(Source)) {
-            .Pointer => |v| v.child,
-            .Struct => Source,
+            .pointer => |v| v.child,
+            .@"struct " => Source,
             else => @compileError("Source type must be a pointer or struct"),
         };
 

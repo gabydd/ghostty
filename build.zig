@@ -27,7 +27,7 @@ const Command = @import("src/Command.zig");
 comptime {
     // This is the required Zig version for building this project. We allow
     // any patch version but the major and minor must match exactly.
-    const required_zig = "0.13.0";
+    const required_zig = "0.14.0";
 
     // Fail compilation if the current Zig version doesn't meet requirements.
     const current_vsn = builtin.zig_version;
@@ -1352,7 +1352,7 @@ fn addDeps(
     // We always require the system SDK so that our system headers are available.
     // This makes things like `os/log.h` available for cross-compiling.
     if (step.rootModuleTarget().isDarwin()) {
-        try @import("apple_sdk").addPaths(b, &step.root_module);
+        try @import("apple_sdk").addPaths(b, step.root_module);
         try addMetallib(b, step);
     }
 
@@ -1477,7 +1477,9 @@ fn addDeps(
                     });
                     const ghostty_resources_c = generate_resources_c.addOutputFileArg("ghostty_resources.c");
                     generate_resources_c.addFileArg(gresource_xml);
-                    generate_resources_c.extra_file_dependencies = &gresource.dependencies;
+                    for (gresource.dependencies) |dep| {
+                        generate_resources_c.addFileInput(b.path(dep));
+                    }
                     step.addCSourceFile(.{ .file = ghostty_resources_c, .flags = &.{} });
 
                     const generate_resources_h = b.addSystemCommand(&.{
@@ -1489,7 +1491,9 @@ fn addDeps(
                     });
                     const ghostty_resources_h = generate_resources_h.addOutputFileArg("ghostty_resources.h");
                     generate_resources_h.addFileArg(gresource_xml);
-                    generate_resources_h.extra_file_dependencies = &gresource.dependencies;
+                    for (gresource.dependencies) |dep| {
+                        generate_resources_h.addFileInput(b.path(dep));
+                    }
                     step.addIncludePath(ghostty_resources_h.dirname());
                 }
             },
@@ -1535,7 +1539,7 @@ fn addHelp(
         const help_exe = b.addExecutable(.{
             .name = "helpgen",
             .root_source_file = b.path("src/helpgen.zig"),
-            .target = b.host,
+            .target = b.graph.host,
         });
         if (step_ == null) b.installArtifact(help_exe);
 
@@ -1575,13 +1579,13 @@ fn addUnicodeTables(
         const exe = b.addExecutable(.{
             .name = "unigen",
             .root_source_file = b.path("src/unicode/props.zig"),
-            .target = b.host,
+            .target = b.graph.host,
         });
         exe.linkLibC();
         if (step_ == null) b.installArtifact(exe);
 
         const ziglyph_dep = b.dependency("ziglyph", .{
-            .target = b.host,
+            .target = b.graph.host,
         });
         exe.root_module.addImport("ziglyph", ziglyph_dep.module("ziglyph"));
 
@@ -1615,7 +1619,7 @@ fn buildDocumentation(
         const generate_markdown = b.addExecutable(.{
             .name = "mdgen_" ++ manpage.name ++ "_" ++ manpage.section,
             .root_source_file = b.path("src/main.zig"),
-            .target = b.host,
+            .target = b.graph.host,
         });
         try addHelp(b, generate_markdown, config);
 
@@ -1683,7 +1687,7 @@ fn buildWebData(
         const webgen_config = b.addExecutable(.{
             .name = "webgen_config",
             .root_source_file = b.path("src/main.zig"),
-            .target = b.host,
+            .target = b.graph.host,
         });
         try addHelp(b, webgen_config, config);
 
@@ -1712,7 +1716,7 @@ fn buildWebData(
         const webgen_actions = b.addExecutable(.{
             .name = "webgen_actions",
             .root_source_file = b.path("src/main.zig"),
-            .target = b.host,
+            .target = b.graph.host,
         });
         try addHelp(b, webgen_actions, config);
 
@@ -1838,7 +1842,7 @@ fn conformanceSteps(
 
 /// Path to the directory with the build.zig.
 fn root() []const u8 {
-    return std.fs.path.dirname(@src().file) orelse unreachable;
+    return "/home/gaby/src/ghostty";
 }
 
 /// ANSI escape codes for colored log output

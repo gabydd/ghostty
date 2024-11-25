@@ -3,19 +3,18 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Inspector = @import("../inspector/main.zig").Inspector;
-const terminal = @import("../terminal/main.zig");
+const term = @import("../terminal/main.zig");
 const inputpkg = @import("../input.zig");
 const renderer = @import("../renderer.zig");
-const Mutex = @import("Mutex.zig");
 
 /// The mutex that must be held while reading any of the data in the
 /// members of this state. Note that the state itself is NOT protected
 /// by the mutex and is NOT thread-safe, only the members values of the
 /// state (i.e. the terminal, devmode, etc. values).
-mutex: *Mutex,
+mutex: *std.Thread.Mutex,
 
 /// The terminal data.
-terminal: *terminal.Terminal,
+terminal: *term.Terminal,
 
 /// The terminal inspector, if any. This will be null while the inspector
 /// is not active and will be set when it is active.
@@ -35,7 +34,7 @@ pub const Mouse = struct {
     /// The point on the viewport where the mouse currently is. We use
     /// viewport points to avoid the complexity of mapping the mouse to
     /// the renderer state.
-    point: ?terminal.point.Coordinate = null,
+    point: ?term.point.Coordinate = null,
 
     /// The mods that are currently active for the last mouse event.
     /// This could really just be mods in general and we probably will
@@ -81,11 +80,11 @@ pub const Preedit = struct {
     /// into the available space.
     pub fn range(
         self: *const Preedit,
-        start: terminal.size.CellCountInt,
-        max: terminal.size.CellCountInt,
+        start: term.size.CellCountInt,
+        max: term.size.CellCountInt,
     ) struct {
-        start: terminal.size.CellCountInt,
-        end: terminal.size.CellCountInt,
+        start: term.size.CellCountInt,
+        end: term.size.CellCountInt,
         cp_offset: usize,
     } {
         // If our width is greater than the number of cells we have
@@ -97,7 +96,7 @@ pub const Preedit = struct {
 
             // Rebuild our width in reverse order. This is because we want
             // to offset by the end cells, not the start cells (if we have to).
-            var w: terminal.size.CellCountInt = 0;
+            var w: term.size.CellCountInt = 0;
             for (0..self.codepoints.len) |i| {
                 const reverse_i = self.codepoints.len - i - 1;
                 const cp = self.codepoints[reverse_i];

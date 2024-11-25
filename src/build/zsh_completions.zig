@@ -43,7 +43,7 @@ fn writeZshCompletions(writer: anytype) !void {
     try writer.writeAll("  _arguments \\\n");
     try writer.writeAll("    \"--help\" \\\n");
     try writer.writeAll("    \"--version\" \\\n");
-    for (@typeInfo(Config).Struct.fields) |field| {
+    for (@typeInfo(Config).@"struct".fields) |field| {
         if (field.name[0] == '_') continue;
         try writer.writeAll("    \"--");
         try writer.writeAll(field.name);
@@ -60,14 +60,14 @@ fn writeZshCompletions(writer: anytype) !void {
         else {
             try writer.writeAll("(");
             switch (@typeInfo(field.type)) {
-                .Bool => try writer.writeAll("true false"),
-                .Enum => |info| {
+                .bool => try writer.writeAll("true false"),
+                .@"enum" => |info| {
                     for (info.fields, 0..) |f, i| {
                         if (i > 0) try writer.writeAll(" ");
                         try writer.writeAll(f.name);
                     }
                 },
-                .Struct => |info| {
+                .@"struct" => |info| {
                     if (!@hasDecl(field.type, "parseCLI") and info.layout == .@"packed") {
                         for (info.fields, 0..) |f, i| {
                             if (i > 0) try writer.writeAll(" ");
@@ -126,7 +126,7 @@ fn writeZshCompletions(writer: anytype) !void {
         // how to get 'commands'
         var count: usize = 0;
         const padding = "        ";
-        for (@typeInfo(Action).Enum.fields) |field| {
+        for (@typeInfo(Action).@"enum".fields) |field| {
             if (std.mem.eql(u8, "help", field.name)) continue;
             if (std.mem.eql(u8, "version", field.name)) continue;
 
@@ -155,25 +155,25 @@ fn writeZshCompletions(writer: anytype) !void {
     );
     {
         const padding = "        ";
-        for (@typeInfo(Action).Enum.fields) |field| {
+        for (@typeInfo(Action).@"enum".fields) |field| {
             if (std.mem.eql(u8, "help", field.name)) continue;
             if (std.mem.eql(u8, "version", field.name)) continue;
 
             const options = @field(Action, field.name).options();
             // assumes options will never be created with only <_name> members
-            if (@typeInfo(options).Struct.fields.len == 0) continue;
+            if (@typeInfo(options).@"struct".fields.len == 0) continue;
 
             try writer.writeAll(padding ++ "(+" ++ field.name ++ ")\n");
             try writer.writeAll(padding ++ "  _arguments \\\n");
-            for (@typeInfo(options).Struct.fields) |opt| {
+            for (@typeInfo(options).@"struct".fields) |opt| {
                 if (opt.name[0] == '_') continue;
 
                 try writer.writeAll(padding ++ "    '--");
                 try writer.writeAll(opt.name);
                 try writer.writeAll("=-:::");
                 switch (@typeInfo(opt.type)) {
-                    .Bool => try writer.writeAll("(true false)"),
-                    .Enum => |info| {
+                    .bool => try writer.writeAll("(true false)"),
+                    .@"enum" => |info| {
                         try writer.writeAll("(");
                         for (info.fields, 0..) |f, i| {
                             if (i > 0) try writer.writeAll(" ");
@@ -181,9 +181,9 @@ fn writeZshCompletions(writer: anytype) !void {
                         }
                         try writer.writeAll(")");
                     },
-                    .Optional => |optional| {
+                    .optional => |optional| {
                         switch (@typeInfo(optional.child)) {
-                            .Enum => |info| {
+                            .@"enum" => |info| {
                                 try writer.writeAll("(");
                                 for (info.fields, 0..) |f, i| {
                                     if (i > 0) try writer.writeAll(" ");

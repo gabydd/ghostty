@@ -276,7 +276,7 @@ pub const Action = union(Key) {
             };
         }
 
-        break :cvalue @Type(.{ .Union = .{
+        break :cvalue @Type(.{ .@"union" = .{
             .layout = .@"extern",
             .tag_type = Key,
             .fields = &union_fields,
@@ -292,7 +292,7 @@ pub const Action = union(Key) {
 
     /// Returns the value type for the given key.
     pub fn Value(comptime key: Key) type {
-        inline for (@typeInfo(Action).Union.fields) |field| {
+        inline for (@typeInfo(Action).@"union".fields) |field| {
             const field_key = @field(Key, field.name);
             if (field_key == key) return field.type;
         }

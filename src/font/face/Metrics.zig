@@ -390,7 +390,7 @@ pub const Key = key: {
 
     var decls = [_]std.builtin.Type.Declaration{};
     break :key @Type(.{
-        .Enum = .{
+        .@"enum" = .{
             .tag_type = std.math.IntFittingRange(0, count - 1),
             .fields = enumFields[0..count],
             .decls = &decls,

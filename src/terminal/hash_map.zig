@@ -205,8 +205,8 @@ fn HashMapUnmanaged(
             }
 
             pub fn takeFingerprint(hash: Hash) FingerPrint {
-                const hash_bits = @typeInfo(Hash).Int.bits;
-                const fp_bits = @typeInfo(FingerPrint).Int.bits;
+                const hash_bits = @typeInfo(Hash).int.bits;
+                const fp_bits = @typeInfo(FingerPrint).int.bits;
                 return @as(FingerPrint, @truncate(hash >> (hash_bits - fp_bits)));
             }
 
