@@ -1,10 +1,9 @@
-import { importObject, setFiles, setMainThread, setStdin, zjs } from "./imports";
+import { importObject, setFiles, setMainThread, zjs } from "./imports";
 
 onmessage = async (e) => {
   console.log("module received from main thread");
-  const [memory, instance, stdin, wasmModule, files, pid] = e.data;
+  const [memory, instance, wasmModule, files, pid] = e.data;
   console.log(wasmModule)
-  setStdin(stdin);
   setMainThread(false);
   setFiles(files);
   importObject.env.memory = memory;

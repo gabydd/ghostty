@@ -715,6 +715,7 @@ pub const Action = union(enum) {
     /// exhaustive switch safety to ensure we always properly handle certain
     /// scoped actions.
     pub fn scoped(self: Action, comptime s: Scope) ?Scoped(s) {
+        @setEvalBranchQuota(1000000);
         switch (self) {
             inline else => |v, tag| {
                 // Use comptime to prune out non-app actions

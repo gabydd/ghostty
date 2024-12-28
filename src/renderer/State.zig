@@ -6,12 +6,13 @@ const Inspector = @import("../inspector/main.zig").Inspector;
 const terminal = @import("../terminal/main.zig");
 const inputpkg = @import("../input.zig");
 const renderer = @import("../renderer.zig");
+const Mutex = @import("Mutex.zig");
 
 /// The mutex that must be held while reading any of the data in the
 /// members of this state. Note that the state itself is NOT protected
 /// by the mutex and is NOT thread-safe, only the members values of the
 /// state (i.e. the terminal, devmode, etc. values).
-mutex: *std.Thread.Mutex,
+mutex: *Mutex,
 
 /// The terminal data.
 terminal: *terminal.Terminal,

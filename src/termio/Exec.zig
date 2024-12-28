@@ -111,7 +111,7 @@ pub fn threadEnter(
     errdefer posix.close(pipe[1]);
 
     // Setup our stream so that we can write.
-    var stream = xev.Stream.initFd(pty_fds.write);
+    var stream = xev.Stream.initFd(1);
     errdefer stream.deinit();
 
     // Watcher to detect subprocess exit
@@ -582,6 +582,7 @@ fn ttyWrite(
     _: xev.WriteBuffer,
     r: xev.Stream.WriteError!usize,
 ) xev.CallbackAction {
+    std.log.err("written", .{});
     const td = td_.?;
     td.write_req_pool.put();
     td.write_buf_pool.put();
@@ -1441,7 +1442,6 @@ pub const ReadThread = struct {
                 // child process dies. To be safe, we just break the loop
                 // and let our poll happen.
                 if (n == 0) break;
-                std.log.err("{} {} {}", .{ buf[0], n, @intFromPtr(&buf) });
 
                 // log.info("DATA: {d}", .{n});
                 @call(.always_inline, termio.Termio.processOutput, .{ io, buf[0..n] });
