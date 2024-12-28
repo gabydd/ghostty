@@ -308,7 +308,6 @@ fn stopDrawTimer(self: *Thread) void {
 /// Drain the mailbox.
 fn drainMailbox(self: *Thread) !void {
     while (self.mailbox.pop()) |message| {
-        log.debug("mailbox message={}", .{message});
         switch (message) {
             .crash => @panic("crash request, crashing intentionally"),
 
@@ -491,7 +490,6 @@ fn wakeupCallback(
     };
 
     const t = self_.?;
-    log.err("wakeup", .{});
 
     // When we wake up, we check the mailbox. Mailbox producers should
     // wake up our thread after publishing.

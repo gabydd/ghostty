@@ -189,6 +189,7 @@ fn startPosix(self: *Command, arena: Allocator) !void {
     return error.ExecFailedInChild;
 }
 
+extern fn fork(path: [*:0]const u8, args: [*:null]const ?[*:0]const u8, env: @TypeOf(std.c.environ)) void;
 fn startWasi(self: *Command, arena: Allocator) !void {
     // Null-terminate all our arguments
     const pathZ = try arena.dupeZ(u8, self.path);
@@ -204,6 +205,7 @@ fn startWasi(self: *Command, arena: Allocator) !void {
         @compileError("missing env vars");
 
     self.pid = 100;
+    fork(pathZ, argsZ, envp);
 
     std.log.err("need to fork {s} {*}", .{ pathZ, envp });
     return;

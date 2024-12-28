@@ -1,4 +1,5 @@
-import { ZigJS } from "zig-js/src/index.ts";
+import { ZigJS } from "zig-js/src/index";
+import { readFile, writeFile, WasiFile } from "./file";
 import {
   WASI_ESUCCESS,
   WASI_EBADF,
@@ -85,34 +86,15 @@ import {
   WASI_WHENCE_SET,
 } from "./wasi";
 const textDecoder = new TextDecoder("utf-8");
-let stdin = new SharedArrayBuffer(1024);
-export function setStdin(buf: SharedArrayBuffer) {
-  stdin = buf;
-}
-let bytes: null | Uint8ClampedArray = null
+
 function perfNow() {
   return performance.now() + performance.timeOrigin;
 }
-function readStdin() {
-  const len = new Int32Array(stdin);
-  if (len[0] == 0) {
-    Atomics.wait(len, 0, 0, 1000);
-  }
-  const length = len[0];
-  if (length === 0) {
-    bytes = null;
-    return;
-  }
-  bytes = new Uint8ClampedArray(stdin, 4, length).slice();
-  console.log(textDecoder.decode(bytes));
-  Atomics.store(len, 0, 0);
-  Atomics.notify(len, 0);
-}
+
 function sleep(ms: number) {
   const buf = new SharedArrayBuffer(4);
   const view = new Int32Array(buf);
   view[0] = 1;
-  console.error("sleep", ms);
   Atomics.wait(view, 0, 1, ms);
 
 
@@ -122,6 +104,10 @@ export function setWasmModule(mod) {
   wasmModule = mod;
 }
 let mainThread = true;
+let childThread = false;
+export function setChildThread(isChild) {
+  childThread = isChild;
+}
 export function setMainThread(isMain) {
   mainThread = isMain;
 }
@@ -137,27 +123,29 @@ globalThis.fontCanvas = new OffscreenCanvas(0, 0);
 //   ctx.willReadFrequently = true;
 //   return ctx;
 // }
-try {
-  const $webgl = document.getElementById("main-canvas");
-  let webgl2Supported = typeof WebGL2RenderingContext !== "undefined";
+if (typeof document !== "undefined") {
+  try {
+    const $webgl = document.getElementById("main-canvas");
+    let webgl2Supported = typeof WebGL2RenderingContext !== "undefined";
 
-  let webglOptions = {
-    alpha: false,
-    antialias: true,
-    depth: 32,
-    failIfMajorPerformanceCaveat: false,
-    powerPreference: "default",
-    premultipliedAlpha: true,
-    preserveDrawingBuffer: true,
-  };
+    let webglOptions = {
+      alpha: false,
+      antialias: true,
+      depth: 32,
+      failIfMajorPerformanceCaveat: false,
+      powerPreference: "default",
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: true,
+    };
 
-  if (webgl2Supported) {
-    gl = $webgl.getContext("webgl2", webglOptions);
-    if (!gl) {
-      throw new Error("The browser supports WebGL2, but initialization failed.");
+    if (webgl2Supported) {
+      gl = $webgl.getContext("webgl2", webglOptions);
+      if (!gl) {
+        throw new Error("The browser supports WebGL2, but initialization failed.");
+      }
     }
-  }
-} catch (e) { console.error(e) }
+  } catch (e) { console.error(e) }
+}
 
 // OpenGL operates on numeric IDs while WebGL on objects. The following is a
 // hack made to allow keeping current API on the native side while resolving IDs
@@ -206,15 +194,17 @@ const glClear = (value) => {
 };
 
 const glGetAttribLocation = (programId, pointer, length) => {
-  const name = zjs.loadString(pointer, length);
+  const name = decodeString(pointer);
   return gl.getAttribLocation(glPrograms.get(programId), name);
 };
-
-const glGetUniformLocation = (programId, pointer) => {
+function decodeString(pointer) {
   const str = new Uint8Array(zjs.memory.buffer, pointer);
   let i = 0;
   while (str[i] !== 0) i++;
-  const name = textDecoder.decode(str.slice(0, i));
+  return textDecoder.decode(str.slice(0, i));
+}
+const glGetUniformLocation = (programId, pointer) => {
+  const name = decodeString(pointer);
   const value = gl.getUniformLocation(glPrograms.get(programId), name);
   const id = getId();
   glUniformLocations.set(id, value);
@@ -303,10 +293,7 @@ const glCompileShader = (id) => {
 // null termination.
 const glShaderSource = (shader, amount, pointer) => {
   const addr = new Uint32Array(zjs.memory.buffer, pointer)[0];
-  const str = new Uint8Array(zjs.memory.buffer, addr);
-  let i = 0;
-  while (str[i] !== 0) i++;
-  const source = textDecoder.decode(str.slice(0, i));
+  const source = decodeString(addr);
   gl.shaderSource(glShaders.get(shader), source);
 };
 
@@ -567,7 +554,7 @@ const glBindVertexArray = (id) => gl.bindVertexArray(glVertexArrays.get(id));
 const glPixelStorei = (type, alignment) => gl.pixelStorei(type, alignment);
 
 const glGetError = () => {
-  return gl.getError();
+  // return gl.getError();
 }
 
 const webgl = {
@@ -662,11 +649,11 @@ const now = (clockId?: number) => {
       return null;
   }
 };
-let files: { polling: SharedArrayBuffer, nextFd: SharedArrayBuffer, has: SharedArrayBuffer };
-export function setFiles(file) {
+let files: { io: WasiFile[], nextFd: SharedArrayBuffer, eventFd: SharedArrayBuffer };
+export function setFiles(file: { nextFd: SharedArrayBuffer; eventFd: SharedArrayBuffer; io: WasiFile[]; }) {
   files = file;
 }
-const fdStart = 4;
+export const fdStart = 4;
 
 export const importObject = {
   module: {},
@@ -688,8 +675,9 @@ export const importObject = {
       return Atomics.add(next, 0, 1);
 
     },
-    fork: (...params) => {
-      console.error("fork", params);
+    fork: (path, args, env) => {
+      console.error("fork", decodeString(path));
+      postMessage([100, new URL("child.ts", import.meta.url).pathname])
     },
     execve: (...params) => {
       console.error("execve", params);
@@ -729,25 +717,36 @@ export const importObject = {
           const iov_len = memory.getUint32(offset + 4, true);
           nwritten += iov_len;
         }
-        const has = new Int32Array(files.has);
+        const has = new Int32Array(files.eventFd);
         Atomics.store(has, fd - fdStart, 1);
         Atomics.notify(has, fd - fdStart);
-        if (!mainThread) Atomics.wait(has, fd-fdStart, 1, 1000);
-        console.error("notify", fd);
+        if (!mainThread) Atomics.wait(has, fd-fdStart, 1, 5);
         memory.setUint32(nwritten_ptr, nwritten, true);
-
-      } else {
-        const memory = new DataView(zjs.memory.buffer);
+      } else if (fd === 2) {
         let buf = "";
+        const memory = new DataView(zjs.memory.buffer);
         let nwritten = 0;
         for (let offset = iovs; offset < iovs + iovs_len * 8; offset += 8) {
           const iov_base = memory.getUint32(offset, true);
           const iov_len = memory.getUint32(offset + 4, true);
-          buf += textDecoder.decode(new Uint8ClampedArray(memory.buffer.slice(iov_base, iov_base + iov_len)).slice());
+          buf += textDecoder.decode(new Uint8Array(memory.buffer.slice(iov_base, iov_base + iov_len)).slice());
           nwritten += iov_len;
         }
         memory.setUint32(nwritten_ptr, nwritten, true);
-        console.error(buf);
+        console.error(buf)
+      } else {
+        const memory = new DataView(zjs.memory.buffer);
+        let nwritten = 0;
+        let buf = "";
+        for (let offset = iovs; offset < iovs + iovs_len * 8; offset += 8) {
+          const iov_base = memory.getUint32(offset, true);
+          const iov_len = memory.getUint32(offset + 4, true);
+          writeFile(files.io[fd], new Uint8Array(memory.buffer.slice(iov_base, iov_base + iov_len)).slice());
+          buf += textDecoder.decode(new Uint8Array(memory.buffer.slice(iov_base, iov_base + iov_len)).slice());
+          nwritten += iov_len;
+        }
+        memory.setUint32(nwritten_ptr, nwritten, true);
+        if (fd === 0) console.error(buf);
       }
     },
     fd_close: (...params) => {
@@ -774,6 +773,9 @@ export const importObject = {
     fd_pwrite: (...params) => {
       console.error("fd_pwrite", params);
     },
+    fd_filestat_set_size: (...params) => {
+      console.error("fd_filestat_set_size", params);
+    },
     fd_read(fd, iovs, iovsLen, nreadPtr) {
       if (fd >= fdStart) {
         const memory = new DataView(zjs.memory.buffer);
@@ -785,27 +787,27 @@ export const importObject = {
           nwritten += iov_len;
           memory.setUint32(nreadPtr, nwritten, true);
         }
-        const has = new Int32Array(files.has);
+        const has = new Int32Array(files.eventFd);
         Atomics.store(has, fd - fdStart, 0)
         Atomics.notify(has, fd-fdStart);
-        console.error("read", fd);
       } else {
         const memory = new DataView(zjs.memory.buffer);
         let nwritten = 0;
         for (let offset = iovs; offset < iovs + iovsLen * 8; offset += 8) {
-          if (bytes == null) readStdin();
-          if (bytes == null) break;
+          const bytes = readFile(files.io[fd])
+          if (bytes.length === 0) break;
+          if (fd === 0 && childThread) {
+            console.error("read");
+          }
           const iov_base = memory.getUint32(offset, true);
           const iov_len = memory.getUint32(offset + 4, true);
           const read = Math.min(iov_len, bytes.length);
           const io = new Uint8ClampedArray(zjs.memory.buffer, iov_base, iov_len);
           io.set(bytes.slice(0, read));
-          bytes = bytes.slice(read);
-          if (bytes.length === 0) bytes = null;
+          files.io[fd].reading = bytes.slice(read);
           nwritten += read;
           if (read !== iov_len) break;
         }
-
         memory.setUint32(nreadPtr, nwritten, true);
       }
     },
@@ -855,7 +857,7 @@ export const importObject = {
         } else {
           name = "poll_oneoff (type=WASI_EVENTTYPE_FD_WRITE): ";
         }
-        console.log(name);
+        // console.log(name);
         switch (type) {
           case WASI_EVENTTYPE_CLOCK: {
             // see packages/zig/dist/lib/libc/include/wasm-wasi-musl/wasi/api.h
@@ -866,7 +868,6 @@ export const importObject = {
             sin += 4;
             sin += 4; // padding
             let timeout = view.getBigUint64(sin, true);
-            console.log(timeout);
             sin += 8;
             // const precision = view.getBigUint64(sin, true);
             sin += 8;
@@ -875,7 +876,7 @@ export const importObject = {
             sin += 6; // padding
 
             const absolute = subclockflags === 1;
-            console.log(name, { clockid, timeout, absolute });
+            // console.log(name, { clockid, timeout, absolute });
             if (!absolute) {
               fd_timeout_ms = Number(timeout / BigInt(1000000));
             }
@@ -930,19 +931,23 @@ export const importObject = {
             fd = view.getUint32(sin, true);
             fd_type = type == WASI_EVENTTYPE_FD_READ ? "read" : "write";
             sin += 4;
-            console.log(name, "fd =", fd);
+            // console.log(name, "fd =", fd);
             sin += 28;
             let notify = true;
+            if (fd >= 100) break;
             if (fd >= fdStart) {
-              const has = new Int32Array(files.has);
-              Atomics.wait(has, fd - fdStart, 0, 500);
+              const has = new Int32Array(files.eventFd);
+              Atomics.wait(has, fd - fdStart, 1, nsToMs(waitTimeNs));
+              waitTimeNs = 0n;
               if (has[fd - fdStart] == 0) {
-                console.warn("not notify");
                 notify = false;
               } else {
-                console.warn("notify");
                 notify = true;
               }
+            } else {
+              // const pos = new Int32Array(files.io[fd].pos);
+              // Atomics.wait(pos, 0, 0, nsToMs(waitTimeNs))
+              // waitTimeNs = 0n;
             }
 
             if (notify) {
@@ -1011,7 +1016,7 @@ export const importObject = {
 
       // Account for the time it took to do everything above, which
       // can be arbitrarily long:
-      if (waitTimeNs > 0) {
+      if (waitTimeNs > 0n) {
         waitTimeNs -= msToNs(perfNow()) - startNs;
         // logToFile("waitTimeNs", waitTimeNs);
         if (waitTimeNs >= 1000000) {
@@ -1054,10 +1059,11 @@ export const importObject = {
   },
   wasi: {
     "thread-spawn": (instance) => {
+      const url = new URL("worker.ts", import.meta.url).pathname;
       if (mainThread) {
-        spawnWorker(instance)
+        spawnWorker(instance, url)
       } else {
-        postMessage([instance])
+        postMessage([instance, url])
       }
 
     }
@@ -1066,11 +1072,11 @@ export const importObject = {
   ...zjs.importObject(),
 };
 let pid = 100;
-function spawnWorker(instance) {
-  const worker = new Worker(new URL("worker.ts", import.meta.url), { type: "module" });
-  worker.postMessage([zjs.memory, instance, stdin, wasmModule, files, pid++]);
+function spawnWorker(instance, url) {
+  const worker = new Worker(url, { type: "module" });
+  worker.postMessage([zjs.memory, instance, wasmModule, files, pid++]);
   worker.onmessage = (event) => {
-    const [instance] = event.data;
-    spawnWorker(instance);
+    const [instance, file] = event.data;
+    spawnWorker(instance, file);
   }
 }

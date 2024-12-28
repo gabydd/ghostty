@@ -17,17 +17,8 @@ pub const App = struct {
         comptime action: apprt.Action.Key,
         value: apprt.Action.Value(action),
     ) !void {
+        _ = self; // autofix
         switch (action) {
-            .new_window => _ = try self.newSurface(switch (target) {
-                .app => null,
-                .surface => |v| v,
-            }),
-
-            .new_tab => try self.newTab(switch (target) {
-                .app => null,
-                .surface => |v| v,
-            }),
-
             .initial_size => switch (target) {
                 .app => {},
                 .surface => |surface| try surface.rt_surface.setInitialWindowSize(
@@ -37,6 +28,8 @@ pub const App = struct {
             },
 
             // Unimplemented
+            .new_window,
+            .new_tab,
             .size_limit,
             .toggle_fullscreen,
             .set_title,
@@ -91,11 +84,51 @@ pub const Surface = struct {
         return apprt.ContentScale{ .x = 1, .y = 1 };
     }
     pub fn getSize(_: *const Surface) !apprt.SurfaceSize {
-        return apprt.SurfaceSize{ .width = 500, .height = 500 };
+        return apprt.SurfaceSize{ .width = 1000, .height = 1000 };
     }
-    fn setInitialWindowSize(self: *const Surface, width: u32, height: u32) !void {
+    pub fn setInitialWindowSize(self: *const Surface, width: u32, height: u32) !void {
         _ = height; // autofix
         _ = self; // autofix
         _ = width; // autofix
+    }
+    pub fn setClipboardString(
+        self: *const Surface,
+        val: [:0]const u8,
+        clipboard_type: apprt.Clipboard,
+        confirm: bool,
+    ) !void {
+        _ = confirm; // autofix
+        _ = clipboard_type; // autofix
+        _ = val; // autofix
+        _ = self; // autofix
+    }
+    pub fn clipboardRequest(
+        self: *Surface,
+        clipboard_type: apprt.Clipboard,
+        state: apprt.ClipboardRequest,
+    ) !void {
+        _ = state; // autofix
+        _ = clipboard_type; // autofix
+        _ = self; // autofix
+    }
+    pub fn supportsClipboard(
+        self: *const Surface,
+        clipboard_type: apprt.Clipboard,
+    ) bool {
+        _ = clipboard_type; // autofix
+        _ = self; // autofix
+        return false;
+    }
+
+    pub fn close(self: *Surface, processActive: bool) void {
+        _ = processActive; // autofix
+        _ = self; // autofix
+    }
+    pub fn getCursorPos(self: *const Surface) !apprt.CursorPos {
+        _ = self; // autofix
+        return apprt.CursorPos{
+            .x = 0,
+            .y = 0,
+        };
     }
 };

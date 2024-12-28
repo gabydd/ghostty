@@ -38,6 +38,7 @@ const App = @import("App.zig");
 const internal_os = @import("os/main.zig");
 const inspector = @import("inspector/main.zig");
 const SurfaceMouse = @import("surface_mouse.zig");
+const Mutex = @import("renderer/Mutex.zig");
 
 const log = std.log.scoped(.surface);
 
@@ -460,7 +461,7 @@ pub fn init(
     errdefer renderer_impl.deinit();
 
     // The mutex used to protect our renderer state.
-    const mutex = try alloc.create(std.Thread.Mutex);
+    const mutex = try alloc.create(Mutex);
     mutex.* = .{};
     errdefer alloc.destroy(mutex);
 
@@ -1654,18 +1655,20 @@ pub fn keyCallback(
 
     // When we're done processing, we always want to add the event to
     // the inspector.
-    defer if (insp_ev) |ev| ev: {
-        // We have to check for the inspector again because our keybinding
-        // might close it.
-        const insp = self.inspector orelse {
-            ev.deinit(self.alloc);
-            break :ev;
-        };
+    defer if (builtin.cpu.arch != .wasm32) {
+        if (insp_ev) |ev| ev: {
+            // We have to check for the inspector again because our keybinding
+            // might close it.
+            const insp = self.inspector orelse {
+                ev.deinit(self.alloc);
+                break :ev;
+            };
 
-        if (insp.recordKeyEvent(ev)) {
-            self.queueRender() catch {};
-        } else |err| {
-            log.warn("error adding key event to inspector err={}", .{err});
+            if (insp.recordKeyEvent(ev)) {
+                self.queueRender() catch {};
+            } else |err| {
+                log.warn("error adding key event to inspector err={}", .{err});
+            }
         }
     };
 
@@ -1772,7 +1775,7 @@ pub fn keyCallback(
     // some data to send to the pty, then we move the viewport down to the
     // bottom. We also clear the selection for any key other then modifiers.
     if (!event.key.modifier()) {
-        self.renderer_state.mutex.lock();
+        while (!self.renderer_state.mutex.tryLock()) {}
         defer self.renderer_state.mutex.unlock();
         try self.setSelection(null);
         try self.io.terminal.scrollViewport(.{ .bottom = {} });
@@ -2004,7 +2007,7 @@ fn encodeKey(
             break :detect self.rt_app.keyboardLayout().detectOptionAsAlt();
         };
 
-        self.renderer_state.mutex.lock();
+        while (!self.renderer_state.mutex.tryLock()) {}
         defer self.renderer_state.mutex.unlock();
         const t = &self.io.terminal;
         break :enc .{
@@ -2055,6 +2058,7 @@ fn encodeKey(
         const seq = try enc.encode(buf);
         break :req try termio.Message.WriteReq.init(self.alloc, seq);
     };
+    std.log.err("{s}", .{write_req.slice()});
 
     // Copy the encoded data into the inspector event if we have one.
     // We do this before the mailbox because the IO thread could
@@ -4222,6 +4226,7 @@ fn writeScreenFile(
     loc: WriteScreenLoc,
     write_action: input.Binding.Action.WriteScreenAction,
 ) !void {
+    if (builtin.cpu.arch == .wasm32) return;
     // Create a temporary directory to store our scrollback.
     var tmp_dir = try internal_os.TempDir.init();
     errdefer tmp_dir.deinit();

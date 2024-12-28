@@ -30,6 +30,7 @@ const custom = @import("opengl/custom.zig");
 const Image = gl_image.Image;
 const ImageMap = gl_image.ImageMap;
 const ImagePlacementList = std.ArrayListUnmanaged(gl_image.Placement);
+const Mutex = @import("Mutex.zig");
 
 const log = std.log.scoped(.grid);
 
@@ -40,7 +41,7 @@ pub const single_threaded_draw = if (@hasDecl(apprt.Surface, "opengl_single_thre
     apprt.Surface.opengl_single_threaded_draw
 else
     false;
-const DrawMutex = if (single_threaded_draw) std.Thread.Mutex else void;
+const DrawMutex = if (single_threaded_draw) Mutex else void;
 const drawMutexZero = if (DrawMutex == void) void{} else .{};
 
 alloc: std.mem.Allocator,
@@ -683,7 +684,6 @@ pub fn updateFrame(
 ) !void {
     _ = surface;
 
-    std.log.err("update frame", .{});
     // Data we extract out of the critical area.
     const Critical = struct {
         full_rebuild: bool,
@@ -702,7 +702,6 @@ pub fn updateFrame(
 
         state.mutex.lock();
         defer state.mutex.unlock();
-        std.log.err("critical", .{});
 
         // If we're in a synchronized output state, we pause all rendering.
         if (state.terminal.modes.get(.synchronized_output)) {

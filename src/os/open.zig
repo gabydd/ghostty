@@ -15,6 +15,7 @@ pub fn open(alloc: Allocator, url: []const u8) !void {
         .macos => .{ &.{ "open", url }, true },
         .windows => .{ &.{ "rundll32", "url.dll,FileProtocolHandler", url }, false },
         .ios => return error.Unimplemented,
+        .wasi => return error.Unimplemented,
         else => @compileError("unsupported OS"),
     };
 

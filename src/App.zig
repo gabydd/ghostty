@@ -257,7 +257,6 @@ pub fn needsConfirmQuit(self: *const App) bool {
 /// Drain the mailbox.
 fn drainMailbox(self: *App, rt_app: *apprt.App) !void {
     while (self.mailbox.pop()) |message| {
-        log.debug("mailbox message={s}", .{@tagName(message)});
         switch (message) {
             .open_config => try self.performAction(rt_app, .open_config),
             .new_window => |msg| try self.newWindow(rt_app, msg),

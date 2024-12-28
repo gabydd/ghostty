@@ -19,6 +19,7 @@ const apprt = @import("apprt.zig");
 const wasm = @import("os/wasm.zig");
 const alloc = wasm.alloc;
 const cli = @import("cli.zig");
+const key = @import("input/key.zig");
 const Config = @import("config/Config.zig");
 
 export fn run(str: [*]const u8, len: usize) void {
@@ -32,6 +33,22 @@ export fn draw() void {
     surf.?.renderer.drawFrame(surf.?.rt_surface) catch |err| {
         std.log.err("err: {?}", .{err});
     };
+}
+export fn handleKey(action: key.Action, code: u8, in_key: key.Key, shift: bool, ctrl: bool, alt: bool, super: bool) void {
+    const utf8: []const u8 = &.{code};
+    const key_event: key.KeyEvent = .{
+        .action = action,
+        .utf8 = utf8,
+        .key = in_key,
+        .physical_key = in_key,
+        .mods = .{
+            .shift = shift,
+            .ctrl = ctrl,
+            .alt = alt,
+            .super = super,
+        },
+    };
+    _ = surf.?.keyCallback(key_event) catch unreachable;
 }
 
 fn run_(str: []const u8) !void {
