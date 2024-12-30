@@ -1091,6 +1091,9 @@ fn addDeps(
     const exe_options = b.addOptions();
     try config.addOptions(exe_options);
     step.root_module.addOptions("build_options", exe_options);
+    if (step.root_module.import_table.get("options") == null) {
+        step.root_module.addAnonymousImport("options", .{ .root_source_file = b.path("src/noop.zig") });
+    }
 
     // We maintain a list of our static libraries and return it so that
     // we can build a single fat static library for the final app.
@@ -1925,6 +1928,9 @@ fn addModuleDeps(
     step: *std.Build.Module,
     config: BuildConfig,
 ) !LazyPathList {
+    if (step.import_table.get("options") == null) {
+        step.addAnonymousImport("options", .{ .root_source_file = b.path("src/noop.zig") });
+    }
     // All object targets get access to a standard build_options module
     const exe_options = b.addOptions();
     try config.addOptions(exe_options);
