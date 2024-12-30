@@ -40,6 +40,14 @@ pub fn addImport(self: *const UnicodeTables, step: *std.Build.Step.Compile) void
     });
 }
 
+/// Add the "unicode_tables" import.
+pub fn addModuleImport(self: *const UnicodeTables, module: *std.Build.Module) void {
+    // self.output.addStepDependencies(&step.step);
+    module.addAnonymousImport("unicode_tables", .{
+        .root_source_file = self.output,
+    });
+}
+
 /// Install the exe
 pub fn install(self: *const UnicodeTables, b: *std.Build) void {
     b.installArtifact(self.exe);

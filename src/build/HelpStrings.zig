@@ -40,6 +40,13 @@ pub fn addImport(self: *const HelpStrings, step: *std.Build.Step.Compile) void {
     });
 }
 
+pub fn addModuleImport(self: *const HelpStrings, module: *std.Build.Module) void {
+    // self.output.addStepDependencies(&step.step);
+    module.addAnonymousImport("help_strings", .{
+        .root_source_file = self.output,
+    });
+}
+
 /// Install the help exe
 pub fn install(self: *const HelpStrings) void {
     self.exe.step.owner.installArtifact(self.exe);
