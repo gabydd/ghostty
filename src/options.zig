@@ -12,7 +12,7 @@ const root = @import("root");
 pub const GenericRenderer = @import("renderer/generic.zig").Renderer;
 
 /// Stdlib-wide options that can be overridden by the root file.
-pub const options: type = if (@hasDecl(root, "ghostty_options")) root.ghostty_options else Options;
+pub const options: type = if (@hasDecl(root, "ghostty_options")) root.ghostty_options else if (@hasDecl(@import("options"), "ghostty_options")) @import("options").ghostty_options else Options;
 const Options = struct {
     pub const Renderer = switch (build_config.renderer) {
         .metal => GenericRenderer(Metal),
