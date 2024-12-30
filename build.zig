@@ -42,6 +42,7 @@ pub fn build(b: *std.Build) !void {
     if (config.emit_helpgen) deps.help_strings.install();
 
     // Ghostty executable, the actual runnable Ghostty program.
+    const module_deps = try buildpkg.ModuleDeps.init(b, &config);
     const exe = try buildpkg.GhosttyExe.init(b, &config, &deps);
 
     // Ghostty docs
@@ -82,6 +83,12 @@ pub fn build(b: *std.Build) !void {
         b,
         &deps,
     );
+    const ghostty = b.addModule("ghostty", .{
+        .root_source_file = b.path("src/ghostty.zig"),
+        .target = config.target,
+        .optimize = config.optimize,
+    });
+    _ = try module_deps.add(ghostty);
 
     // Runtime "none" is libghostty, anything else is an executable.
     if (config.app_runtime != .none) {

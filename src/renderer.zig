@@ -16,13 +16,13 @@ const cursor = @import("renderer/cursor.zig");
 const message = @import("renderer/message.zig");
 const size = @import("renderer/size.zig");
 pub const shadertoy = @import("renderer/shadertoy.zig");
-pub const GenericRenderer = @import("renderer/generic.zig").Renderer;
 pub const Metal = @import("renderer/Metal.zig");
 pub const OpenGL = @import("renderer/OpenGL.zig");
 pub const WebGL = @import("renderer/WebGL.zig");
 pub const Options = @import("renderer/Options.zig");
 pub const Thread = @import("renderer/Thread.zig");
 pub const State = @import("renderer/State.zig");
+pub const options = @import("options.zig").options;
 pub const CursorStyle = cursor.Style;
 pub const Message = message.Message;
 pub const Size = size.Size;
@@ -56,11 +56,7 @@ pub const Impl = enum {
 
 /// The implementation to use for the renderer. This is comptime chosen
 /// so that every build has exactly one renderer implementation.
-pub const Renderer = switch (build_config.renderer) {
-    .metal => GenericRenderer(Metal),
-    .opengl => GenericRenderer(OpenGL),
-    .webgl => WebGL,
-};
+pub const Renderer = options.Renderer;
 
 /// The health status of a renderer. These must be shared across all
 /// renderers even if some states aren't reachable so that our API users
