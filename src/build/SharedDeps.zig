@@ -91,6 +91,13 @@ pub fn add(
     // correct to always match our step.
     const target = step.root_module.resolved_target.?;
     const optimize = step.root_module.optimize.?;
+    if (step.root_module.import_table.get("options") == null) {
+        step.root_module.addAnonymousImport("options", .{
+            .root_source_file = b.path("src/noop.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+    }
 
     // We maintain a list of our static libraries and return it so that
     // we can build a single fat static library for the final app.
