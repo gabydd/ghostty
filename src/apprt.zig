@@ -13,6 +13,7 @@ const builtin = @import("builtin");
 const build_config = @import("build_config.zig");
 
 const structs = @import("apprt/structs.zig");
+const options = @import("options.zig").options;
 
 pub const action = @import("apprt/action.zig");
 pub const glfw = @import("apprt/glfw.zig");
@@ -39,15 +40,7 @@ pub const SurfaceSize = structs.SurfaceSize;
 /// so that every build has exactly one application runtime implementation.
 /// Note: it is very rare to use Runtime directly; most usage will use
 /// Window or something.
-pub const runtime = switch (build_config.artifact) {
-    .exe => switch (build_config.app_runtime) {
-        .none => none,
-        .glfw => glfw,
-        .gtk => gtk,
-    },
-    .lib => embedded,
-    .wasm_module => browser,
-};
+pub const runtime = options.runtime;
 
 pub const App = runtime.App;
 pub const Surface = runtime.Surface;

@@ -16,6 +16,7 @@ pub const GhosttyXCFramework = @import("GhosttyXCFramework.zig");
 pub const GhosttyWebdata = @import("GhosttyWebdata.zig");
 pub const HelpStrings = @import("HelpStrings.zig");
 pub const SharedDeps = @import("SharedDeps.zig");
+pub const ModuleDeps = @import("ModuleDeps.zig");
 pub const UnicodeTables = @import("UnicodeTables.zig");
 
 // Steps
