@@ -93,6 +93,14 @@ pub fn add(
     const optimize = module.optimize.?;
     const resolved_target = target.result;
 
+    if (module.import_table.get("options") == null) {
+        module.addAnonymousImport("options", .{
+            .root_source_file = b.path("src/noop.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+    }
+
     // We maintain a list of our static libraries and return it so that
     // we can build a single fat static library for the final app.
     var static_libs = LazyPathList.init(b.allocator);
