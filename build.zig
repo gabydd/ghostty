@@ -15,6 +15,7 @@ pub fn build(b: *std.Build) !void {
 
     // Ghostty dependencies used by many artifacts.
     const deps = try buildpkg.SharedDeps.init(b, &config);
+    const module_deps = try buildpkg.ModuleDeps.init(b, &config);
     const exe = try buildpkg.GhosttyExe.init(b, &config, &deps);
     if (config.emit_helpgen) deps.help_strings.install();
 
@@ -42,6 +43,13 @@ pub fn build(b: *std.Build) !void {
         resources.install();
         i18n.install();
     }
+
+    const ghostty = b.addModule("ghostty", .{
+        .root_source_file = b.path("src/ghostty.zig"),
+        .target = config.target,
+        .optimize = config.optimize,
+    });
+    _ = try module_deps.add(ghostty);
 
     // Libghostty
     //
