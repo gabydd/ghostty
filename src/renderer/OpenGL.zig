@@ -162,7 +162,7 @@ pub fn surfaceInit(surface: *apprt.Surface) !void {
     _ = surface;
 
     switch (apprt.runtime) {
-        else => @compileError("unsupported app runtime for OpenGL"),
+        else => try self.threadEnter(surface),
 
         // GTK uses global OpenGL context so we load from null.
         apprt.gtk,
@@ -189,7 +189,7 @@ pub fn surfaceInit(surface: *apprt.Surface) !void {
 /// thread for final main thread setup requirements.
 pub fn finalizeSurfaceInit(self: *const OpenGL, surface: *apprt.Surface) !void {
     _ = self;
-    _ = surface;
+    try surface.finalizeSurfaceInit();
 }
 
 /// Callback called by renderer.Thread when it begins.
@@ -198,7 +198,7 @@ pub fn threadEnter(self: *const OpenGL, surface: *apprt.Surface) !void {
     _ = surface;
 
     switch (apprt.runtime) {
-        else => @compileError("unsupported app runtime for OpenGL"),
+        else => try surface.threadEnter(),
 
         apprt.gtk => {
             // GTK doesn't support threaded OpenGL operations as far as I can
@@ -216,11 +216,11 @@ pub fn threadEnter(self: *const OpenGL, surface: *apprt.Surface) !void {
 }
 
 /// Callback called by renderer.Thread when it exits.
-pub fn threadExit(self: *const OpenGL) void {
+pub fn threadExit(self: *const OpenGL, surface: *apprt.Surface) void {
     _ = self;
 
     switch (apprt.runtime) {
-        else => @compileError("unsupported app runtime for OpenGL"),
+        else => surface.threadExit(),
 
         apprt.gtk => {
             // We don't need to do any unloading for GTK because we may
@@ -258,8 +258,13 @@ pub fn drawFrameStart(self: *OpenGL) void {
 /// Actions taken after `drawFrame` is done.
 ///
 /// Right now there's nothing we need to do for OpenGL.
-pub fn drawFrameEnd(self: *OpenGL) void {
+pub fn drawFrameEnd(self: *OpenGL, surface: *apprt.Surface) void {
     _ = self;
+    _ = surface;
+    switch (apprt.runtime) {
+        apprt.gtk, apprt.gtk_ng, apprt.browser, apprt.embedded => {},
+        // else => try surface.swapBuffers(),
+    }
 }
 
 pub fn initShaders(

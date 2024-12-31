@@ -830,10 +830,10 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
         }
 
         /// Callback called by renderer.Thread when it exits.
-        pub fn threadExit(self: *const Self) void {
+        pub fn threadExit(self: *const Self, surface: *apprt.Surface) void {
             // If our API has to do things on thread exit, let it.
             if (@hasDecl(GraphicsAPI, "threadExit")) {
-                self.api.threadExit();
+                self.api.threadExit(surface);
             }
         }
 
