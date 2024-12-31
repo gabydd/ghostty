@@ -451,7 +451,7 @@ pub fn surfaceInit(surface: *apprt.Surface) !void {
     const self: OpenGL = undefined;
 
     switch (apprt.runtime) {
-        else => @compileError("unsupported app runtime for OpenGL"),
+        else => try self.threadEnter(surface),
 
         apprt.gtk => {
             // GTK uses global OpenGL context so we load from null.
@@ -491,12 +491,13 @@ pub fn surfaceInit(surface: *apprt.Surface) !void {
 /// final main thread setup requirements.
 pub fn finalizeSurfaceInit(self: *const OpenGL, surface: *apprt.Surface) !void {
     _ = self;
-    _ = surface;
 
     // For GLFW, we grabbed the OpenGL context in surfaceInit and we
     // need to release it before we start the renderer thread.
     if (apprt.runtime == apprt.glfw) {
         glfw.makeContextCurrent(null);
+    } else {
+        try surface.finalizeSurfaceInit();
     }
 }
 
@@ -555,7 +556,7 @@ pub fn threadEnter(self: *const OpenGL, surface: *apprt.Surface) !void {
     _ = self;
 
     switch (apprt.runtime) {
-        else => @compileError("unsupported app runtime for OpenGL"),
+        else => try surface.threadEnter(),
 
         apprt.gtk => {
             // GTK doesn't support threaded OpenGL operations as far as I can
@@ -593,11 +594,11 @@ pub fn threadEnter(self: *const OpenGL, surface: *apprt.Surface) !void {
 }
 
 /// Callback called by renderer.Thread when it exits.
-pub fn threadExit(self: *const OpenGL) void {
+pub fn threadExit(self: *const OpenGL, surface: *apprt.Surface) void {
     _ = self;
 
     switch (apprt.runtime) {
-        else => @compileError("unsupported app runtime for OpenGL"),
+        else => surface.threadExit(),
 
         apprt.gtk => {
             // We don't need to do any unloading for GTK because we may
@@ -2332,7 +2333,7 @@ pub fn drawFrame(self: *OpenGL, surface: *apprt.Surface) !void {
         apprt.glfw => surface.window.swapBuffers(),
         apprt.gtk => {},
         apprt.embedded => {},
-        else => @compileError("unsupported runtime"),
+        else => try surface.swapBuffers(),
     }
 }
 

@@ -217,7 +217,7 @@ fn threadMain_(self: *Thread) !void {
     // renderers have to do per-thread setup. For example, OpenGL has to set
     // some thread-local state since that is how it works.
     try self.renderer.threadEnter(self.surface);
-    defer self.renderer.threadExit();
+    defer self.renderer.threadExit(self.surface);
 
     // Start the async handlers
     self.wakeup.wait(&self.loop, &self.wakeup_c, Thread, self, wakeupCallback);
