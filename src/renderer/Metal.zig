@@ -867,8 +867,9 @@ pub fn threadEnter(self: *const Metal, surface: *apprt.Surface) !void {
 }
 
 /// Callback called by renderer.Thread when it exits.
-pub fn threadExit(self: *const Metal) void {
+pub fn threadExit(self: *const Metal, surface: *apprt.Surface) void {
     _ = self;
+    _ = surface;
 
     // Metal requires no per-thread state.
 }
