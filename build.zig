@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const buildpkg = @import("src/build/main.zig");
+pub const buildpkg = @import("src/build/main.zig");
 
 comptime {
     buildpkg.requireZig("0.13.0");
