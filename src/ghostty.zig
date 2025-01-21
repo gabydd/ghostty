@@ -9,3 +9,4 @@ pub const terminal = @import("terminal/main.zig");
 pub const Surface = @import("Surface.zig");
 pub const config = @import("config.zig");
 pub const gl = @import("opengl");
+pub const termio = @import("termio.zig");
