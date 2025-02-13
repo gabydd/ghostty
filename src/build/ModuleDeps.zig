@@ -438,67 +438,7 @@ pub fn add(
             module.addImport("glfw", mach_glfw_dep.module("mach-glfw"));
         },
 
-        .gtk => {
-            module.linkSystemLibrary("gtk4", dynamic_link_opts);
-            if (self.config.adwaita) module.linkSystemLibrary("libadwaita-1", dynamic_link_opts);
-            if (self.config.x11) module.linkSystemLibrary("X11", dynamic_link_opts);
-
-            if (self.config.wayland) {
-                const scanner = Scanner.create(b.dependency("zig_wayland", .{}), .{
-                    // We shouldn't be using getPath but we need to for now
-                    // https://codeberg.org/ifreund/zig-wayland/issues/66
-                    .wayland_xml = b.dependency("wayland", .{})
-                        .path("protocol/wayland.xml"),
-                    .wayland_protocols = b.dependency("wayland_protocols", .{})
-                        .path(""),
-                });
-
-                const wayland = b.createModule(.{ .root_source_file = scanner.result });
-
-                const plasma_wayland_protocols = b.dependency("plasma_wayland_protocols", .{
-                    .target = target,
-                    .optimize = optimize,
-                });
-                scanner.addCustomProtocol(plasma_wayland_protocols.path("src/protocols/blur.xml"));
-
-                scanner.generate("wl_compositor", 1);
-                scanner.generate("org_kde_kwin_blur_manager", 1);
-
-                module.addImport("wayland", wayland);
-                module.linkSystemLibrary("wayland-client", dynamic_link_opts);
-            }
-
-            {
-                const gresource = @import("../apprt/gtk/gresource.zig");
-
-                const wf = b.addWriteFiles();
-                const gresource_xml = wf.add("gresource.xml", gresource.gresource_xml);
-
-                const generate_resources_c = b.addSystemCommand(&.{
-                    "glib-compile-resources",
-                    "--c-name",
-                    "ghostty",
-                    "--generate-source",
-                    "--target",
-                });
-                const ghostty_resources_c = generate_resources_c.addOutputFileArg("ghostty_resources.c");
-                generate_resources_c.addFileArg(gresource_xml);
-                generate_resources_c.extra_file_dependencies = &gresource.dependencies;
-                module.addCSourceFile(.{ .file = ghostty_resources_c, .flags = &.{} });
-
-                const generate_resources_h = b.addSystemCommand(&.{
-                    "glib-compile-resources",
-                    "--c-name",
-                    "ghostty",
-                    "--generate-header",
-                    "--target",
-                });
-                const ghostty_resources_h = generate_resources_h.addOutputFileArg("ghostty_resources.h");
-                generate_resources_h.addFileArg(gresource_xml);
-                generate_resources_h.extra_file_dependencies = &gresource.dependencies;
-                module.addIncludePath(ghostty_resources_h.dirname());
-            }
-        },
+        .gtk => {},
     }
     // }
 
