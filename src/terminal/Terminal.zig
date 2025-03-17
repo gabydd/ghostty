@@ -696,6 +696,7 @@ fn printCell(
         var page = &self.screen.cursor.page_pin.node.data;
         page.clearHyperlink(self.screen.cursor.page_row, cell);
     }
+    log.debug("c {}", .{c});
 }
 
 fn printWrap(self: *Terminal) !void {

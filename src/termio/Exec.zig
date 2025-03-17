@@ -457,7 +457,7 @@ pub fn queueWrite(
             break :slice buf[0..buf_i];
         };
 
-        //for (slice) |b| log.warn("write: {x}", .{b});
+        for (slice) |b| log.warn("write: {x}", .{b});
 
         exec.write_stream.queueWrite(
             td.loop,

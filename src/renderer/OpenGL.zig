@@ -159,10 +159,11 @@ fn prepareContext(getProcAddress: anytype) !void {
 
 /// This is called early right after surface creation.
 pub fn surfaceInit(surface: *apprt.Surface) !void {
-    _ = surface;
-
     switch (apprt.runtime) {
-        else => try self.threadEnter(surface),
+        else => {
+            try surface.threadEnter();
+            try prepareContext(apprt.Surface.getProcAddress);
+        },
 
         // GTK uses global OpenGL context so we load from null.
         apprt.gtk,
@@ -195,10 +196,12 @@ pub fn finalizeSurfaceInit(self: *const OpenGL, surface: *apprt.Surface) !void {
 /// Callback called by renderer.Thread when it begins.
 pub fn threadEnter(self: *const OpenGL, surface: *apprt.Surface) !void {
     _ = self;
-    _ = surface;
 
     switch (apprt.runtime) {
-        else => try surface.threadEnter(),
+        else => {
+            try surface.threadEnter();
+            try prepareContext(apprt.Surface.getProcAddress);
+        },
 
         apprt.gtk => {
             // GTK doesn't support threaded OpenGL operations as far as I can
@@ -251,19 +254,24 @@ pub fn displayRealized(self: *const OpenGL) void {
 /// Actions taken before doing anything in `drawFrame`.
 ///
 /// Right now there's nothing we need to do for OpenGL.
-pub fn drawFrameStart(self: *OpenGL) void {
+pub fn drawFrameStart(self: *OpenGL, surface: ?*apprt.Surface) void {
     _ = self;
+    switch (apprt.runtime) {
+        apprt.gtk, apprt.browser, apprt.embedded => {},
+        else => if (surface) |s| s.drawFrameStart(),
+    }
 }
 
 /// Actions taken after `drawFrame` is done.
 ///
 /// Right now there's nothing we need to do for OpenGL.
-pub fn drawFrameEnd(self: *OpenGL, surface: *apprt.Surface) void {
+pub fn drawFrameEnd(self: *OpenGL, surface: ?*apprt.Surface) !void {
     _ = self;
     _ = surface;
     switch (apprt.runtime) {
-        apprt.gtk, apprt.gtk_ng, apprt.browser, apprt.embedded => {},
-        // else => try surface.swapBuffers(),
+        apprt.gtk, apprt.browser, apprt.embedded => {},
+        else => {},
+        // else => if (surface) |s| try s.swapBuffers(),
     }
 }
 
@@ -300,7 +308,7 @@ pub fn initTarget(self: *const OpenGL, width: usize, height: usize) !Target {
 }
 
 /// Present the provided target.
-pub fn present(self: *OpenGL, target: Target) !void {
+pub fn present(self: *OpenGL, target: Target, surface: ?*apprt.Surface) !void {
     // In order to present a target we blit it to the default framebuffer.
 
     // We disable GL_FRAMEBUFFER_SRGB while doing this blit, otherwise the
@@ -332,11 +340,12 @@ pub fn present(self: *OpenGL, target: Target) !void {
 
     // Keep track of this target in case we need to repeat it.
     self.last_target = target;
+    if (surface) |s| try s.swapBuffers();
 }
 
 /// Present the last presented target again.
-pub fn presentLastTarget(self: *OpenGL) !void {
-    if (self.last_target) |target| try self.present(target);
+pub fn presentLastTarget(self: *OpenGL, surface: ?*apprt.Surface) !void {
+    if (self.last_target) |target| try self.present(target, surface);
 }
 
 /// Returns the options to use when constructing buffers.

@@ -685,6 +685,7 @@ pub fn processOutput(self: *Termio, buf: []const u8) void {
     self.renderer_state.mutex.lock();
     defer self.renderer_state.mutex.unlock();
     self.processOutputLocked(buf);
+    log.debug("processed output", .{});
 }
 
 /// Process output from readdata but the lock is already held.

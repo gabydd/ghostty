@@ -19,6 +19,7 @@ pub const shadertoy = @import("renderer/shadertoy.zig");
 pub const Metal = @import("renderer/Metal.zig");
 pub const OpenGL = @import("renderer/OpenGL.zig");
 pub const WebGL = @import("renderer/WebGL.zig");
+pub const GenericRenderer = @import("renderer/generic.zig").Renderer;
 pub const Options = @import("renderer/Options.zig");
 pub const Thread = @import("renderer/Thread.zig");
 pub const State = @import("renderer/State.zig");

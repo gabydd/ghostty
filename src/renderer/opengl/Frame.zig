@@ -9,6 +9,7 @@ const gl = @import("opengl");
 
 const Renderer = @import("../generic.zig").Renderer(OpenGL);
 const OpenGL = @import("../OpenGL.zig");
+const apprt = @import("../../apprt.zig");
 const Target = @import("Target.zig");
 const Pipeline = @import("Pipeline.zig");
 const RenderPass = @import("RenderPass.zig");
@@ -56,7 +57,7 @@ pub inline fn renderPass(
 /// If `sync` is true, this will block until the frame is presented.
 ///
 /// NOTE: For OpenGL, `sync` is ignored and we always block.
-pub fn complete(self: *const Self, sync: bool) void {
+pub fn complete(self: *const Self, sync: bool, surface: ?*apprt.Surface) void {
     _ = sync;
     gl.finish();
 
@@ -65,7 +66,7 @@ pub fn complete(self: *const Self, sync: bool) void {
 
     // If the frame is healthy, present it.
     if (health == .healthy) {
-        self.renderer.api.present(self.target.*) catch |err| {
+        self.renderer.api.present(self.target.*, surface) catch |err| {
             log.err("Failed to present render target: err={}", .{err});
         };
     }

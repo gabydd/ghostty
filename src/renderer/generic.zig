@@ -1264,6 +1264,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
         pub fn drawFrame(
             self: *Self,
             sync: bool,
+            surface: ?*apprt.Surface,
         ) !void {
             // We hold a the draw mutex to prevent changes to any
             // data we access while we're in the middle of drawing.
@@ -1272,8 +1273,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
 
             // Let our graphics API do any bookkeeping, etc.
             // that it needs to do before / after `drawFrame`.
-            self.api.drawFrameStart();
-            defer self.api.drawFrameEnd();
+            self.api.drawFrameStart(surface);
 
             // Retrieve the most up-to-date surface size from the Graphics API
             const surface_size = try self.api.surfaceSize();
@@ -1298,7 +1298,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                 // We still need to present the last target again, because the
                 // apprt may be swapping buffers and display an outdated frame
                 // if we don't draw something new.
-                try self.api.presentLastTarget();
+                try self.api.presentLastTarget(surface);
                 return;
             }
             self.cells_rebuilt = false;
@@ -1401,7 +1401,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
 
             // Get a frame context from the graphics API.
             var frame_ctx = try self.api.beginFrame(self, &frame.target);
-            defer frame_ctx.complete(sync);
+            defer frame_ctx.complete(sync, surface);
 
             {
                 var pass = frame_ctx.renderPass(&.{.{
@@ -1516,6 +1516,8 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                     });
                 }
             }
+            std.log.warn("frame end", .{});
+            try self.api.drawFrameEnd(surface);
         }
 
         // Callback from the graphics API when a frame is completed.
@@ -1535,6 +1537,7 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                 }, .{ .forever = {} });
             }
 
+            std.log.warn("frame end", .{});
             // Always release our semaphore
             self.swap_chain.releaseFrame();
         }

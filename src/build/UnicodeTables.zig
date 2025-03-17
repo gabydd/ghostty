@@ -72,7 +72,10 @@ pub fn addImport(self: *const UnicodeTables, step: *std.Build.Step.Compile) void
 pub fn addModuleImport(self: *const UnicodeTables, module: *std.Build.Module) void {
     // self.output.addStepDependencies(&step.step);
     module.addAnonymousImport("unicode_tables", .{
-        .root_source_file = self.output,
+        .root_source_file = self.props_output,
+    });
+    module.addAnonymousImport("symbols_tables", .{
+        .root_source_file = self.symbols_output,
     });
 }
 

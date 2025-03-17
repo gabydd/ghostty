@@ -497,7 +497,7 @@ fn drawFrame(self: *Thread, now: bool) void {
             .{ .instant = {} },
         );
     } else {
-        self.renderer.drawFrame(false) catch |err|
+        self.renderer.drawFrame(false, self.surface) catch |err|
             log.warn("error drawing err={}", .{err});
     }
 }
@@ -514,6 +514,7 @@ fn wakeupCallback(
     };
 
     const t = self_.?;
+    log.debug("in wakeup", .{});
 
     // When we wake up, we check the mailbox. Mailbox producers should
     // wake up our thread after publishing.
