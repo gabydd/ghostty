@@ -35,3 +35,10 @@ pub fn addImport(self: *const GhosttyFrameData, step: *std.Build.Step.Compile) v
         .root_source_file = self.output,
     });
 }
+
+pub fn addModuleImport(self: *const GhosttyFrameData, module: *std.Build.Module) void {
+    // self.output.addStepDependencies(&step.step);
+    module.addAnonymousImport("framedata", .{
+        .root_source_file = self.output,
+    });
+}
