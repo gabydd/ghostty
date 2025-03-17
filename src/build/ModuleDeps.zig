@@ -6,6 +6,7 @@ const Config = @import("Config.zig");
 const HelpStrings = @import("HelpStrings.zig");
 const MetallibStep = @import("MetallibStep.zig");
 const UnicodeTables = @import("UnicodeTables.zig");
+const GhosttyFrameData = @import("GhosttyFrameData.zig");
 
 config: *const Config,
 
@@ -13,6 +14,7 @@ options: *std.Build.Step.Options,
 help_strings: HelpStrings,
 metallib: ?*MetallibStep,
 unicode_tables: UnicodeTables,
+framedata: GhosttyFrameData,
 
 /// Used to keep track of a list of file sources.
 pub const LazyPathList = std.ArrayList(std.Build.LazyPath);
@@ -22,6 +24,7 @@ pub fn init(b: *std.Build, cfg: *const Config) !ModuleDeps {
         .config = cfg,
         .help_strings = try HelpStrings.init(b, cfg),
         .unicode_tables = try UnicodeTables.init(b),
+        .framedata = try GhosttyFrameData.init(b),
 
         // Setup by retarget
         .options = undefined,
@@ -131,42 +134,47 @@ pub fn add(
     // Harfbuzz
     _ = b.systemIntegrationOption("harfbuzz", .{}); // Shows it in help
     if (self.config.font_backend.hasHarfbuzz()) {
-        const harfbuzz_dep = b.dependency("harfbuzz", .{
+        if (b.lazyDependency("harfbuzz", .{
             .target = target,
             .optimize = optimize,
             .@"enable-freetype" = true,
             .@"enable-coretext" = self.config.font_backend.hasCoretext(),
-        });
-
-        module.addImport(
-            "harfbuzz",
-            harfbuzz_dep.module("harfbuzz"),
-        );
-        if (b.systemIntegrationOption("harfbuzz", .{})) {
-            module.linkSystemLibrary("harfbuzz", dynamic_link_opts);
-        } else {
-            module.linkLibrary(harfbuzz_dep.artifact("harfbuzz"));
-            try static_libs.append(harfbuzz_dep.artifact("harfbuzz").getEmittedBin());
+        })) |harfbuzz_dep| {
+            module.addImport(
+                "harfbuzz",
+                harfbuzz_dep.module("harfbuzz"),
+            );
+            if (b.systemIntegrationOption("harfbuzz", .{})) {
+                module.linkSystemLibrary("harfbuzz", dynamic_link_opts);
+            } else {
+                module.linkLibrary(harfbuzz_dep.artifact("harfbuzz"));
+                try static_libs.append(
+                    harfbuzz_dep.artifact("harfbuzz").getEmittedBin(),
+                );
+            }
         }
     }
 
     // Fontconfig
     _ = b.systemIntegrationOption("fontconfig", .{}); // Shows it in help
     if (self.config.font_backend.hasFontconfig()) {
-        const fontconfig_dep = b.dependency("fontconfig", .{
+        if (b.lazyDependency("fontconfig", .{
             .target = target,
             .optimize = optimize,
-        });
-        module.addImport(
-            "fontconfig",
-            fontconfig_dep.module("fontconfig"),
-        );
+        })) |fontconfig_dep| {
+            module.addImport(
+                "fontconfig",
+                fontconfig_dep.module("fontconfig"),
+            );
 
-        if (b.systemIntegrationOption("fontconfig", .{})) {
-            module.linkSystemLibrary("fontconfig", dynamic_link_opts);
-        } else {
-            module.linkLibrary(fontconfig_dep.artifact("fontconfig"));
-            try static_libs.append(fontconfig_dep.artifact("fontconfig").getEmittedBin());
+            if (b.systemIntegrationOption("fontconfig", .{})) {
+                module.linkSystemLibrary("fontconfig", dynamic_link_opts);
+            } else {
+                module.linkLibrary(fontconfig_dep.artifact("fontconfig"));
+                try static_libs.append(
+                    fontconfig_dep.artifact("fontconfig").getEmittedBin(),
+                );
+            }
         }
     }
 
@@ -175,96 +183,129 @@ pub fn add(
     // libs list if we're not using system integration. The dependencies
     // will handle linking it.
     if (!b.systemIntegrationOption("libpng", .{})) {
-        const libpng_dep = b.dependency("libpng", .{
+        if (b.lazyDependency("libpng", .{
             .target = target,
             .optimize = optimize,
-        });
-        module.linkLibrary(libpng_dep.artifact("png"));
-        try static_libs.append(libpng_dep.artifact("png").getEmittedBin());
+        })) |libpng_dep| {
+            module.linkLibrary(libpng_dep.artifact("png"));
+            try static_libs.append(
+                libpng_dep.artifact("png").getEmittedBin(),
+            );
+        }
     }
 
     // Zlib - same as libpng, only used through dependencies.
     if (!b.systemIntegrationOption("zlib", .{})) {
-        const zlib_dep = b.dependency("zlib", .{
+        if (b.lazyDependency("zlib", .{
             .target = target,
             .optimize = optimize,
-        });
-        module.linkLibrary(zlib_dep.artifact("z"));
-        try static_libs.append(zlib_dep.artifact("z").getEmittedBin());
+        })) |zlib_dep| {
+            module.linkLibrary(zlib_dep.artifact("z"));
+            try static_libs.append(
+                zlib_dep.artifact("z").getEmittedBin(),
+            );
+        }
     }
 
     // Oniguruma
-    const oniguruma_dep = b.dependency("oniguruma", .{
+    if (b.lazyDependency("oniguruma", .{
         .target = target,
         .optimize = optimize,
-    });
-    module.addImport("oniguruma", oniguruma_dep.module("oniguruma"));
-    if (b.systemIntegrationOption("oniguruma", .{})) {
-        module.linkSystemLibrary("oniguruma", dynamic_link_opts);
-    } else {
-        module.linkLibrary(oniguruma_dep.artifact("oniguruma"));
-        try static_libs.append(oniguruma_dep.artifact("oniguruma").getEmittedBin());
+    })) |oniguruma_dep| {
+        module.addImport(
+            "oniguruma",
+            oniguruma_dep.module("oniguruma"),
+        );
+        if (b.systemIntegrationOption("oniguruma", .{})) {
+            module.linkSystemLibrary("oniguruma", dynamic_link_opts);
+        } else {
+            module.linkLibrary(oniguruma_dep.artifact("oniguruma"));
+            try static_libs.append(
+                oniguruma_dep.artifact("oniguruma").getEmittedBin(),
+            );
+        }
     }
 
     // Glslang
-    const glslang_dep = b.dependency("glslang", .{
+    if (b.lazyDependency("glslang", .{
         .target = target,
         .optimize = optimize,
-    });
-    module.addImport("glslang", glslang_dep.module("glslang"));
-    if (b.systemIntegrationOption("glslang", .{})) {
-        module.linkSystemLibrary("glslang", dynamic_link_opts);
-        module.linkSystemLibrary("glslang-default-resource-limits", dynamic_link_opts);
-    } else {
-        module.linkLibrary(glslang_dep.artifact("glslang"));
-        try static_libs.append(glslang_dep.artifact("glslang").getEmittedBin());
+    })) |glslang_dep| {
+        module.addImport("glslang", glslang_dep.module("glslang"));
+        if (b.systemIntegrationOption("glslang", .{})) {
+            module.linkSystemLibrary("glslang", dynamic_link_opts);
+            module.linkSystemLibrary(
+                "glslang-default-resource-limits",
+                dynamic_link_opts,
+            );
+        } else {
+            module.linkLibrary(glslang_dep.artifact("glslang"));
+            try static_libs.append(
+                glslang_dep.artifact("glslang").getEmittedBin(),
+            );
+        }
     }
 
     // Spirv-cross
-    const spirv_cross_dep = b.dependency("spirv_cross", .{
+    if (b.lazyDependency("spirv_cross", .{
         .target = target,
         .optimize = optimize,
-    });
-    module.addImport("spirv_cross", spirv_cross_dep.module("spirv_cross"));
-    if (b.systemIntegrationOption("spirv-cross", .{})) {
-        module.linkSystemLibrary("spirv-cross", dynamic_link_opts);
-    } else {
-        module.linkLibrary(spirv_cross_dep.artifact("spirv_cross"));
-        try static_libs.append(spirv_cross_dep.artifact("spirv_cross").getEmittedBin());
+    })) |spirv_cross_dep| {
+        module.addImport(
+            "spirv_cross",
+            spirv_cross_dep.module("spirv_cross"),
+        );
+        if (b.systemIntegrationOption("spirv-cross", .{})) {
+            module.linkSystemLibrary("spirv-cross", dynamic_link_opts);
+        } else {
+            module.linkLibrary(spirv_cross_dep.artifact("spirv_cross"));
+            try static_libs.append(
+                spirv_cross_dep.artifact("spirv_cross").getEmittedBin(),
+            );
+        }
     }
 
     // Simdutf
     if (b.systemIntegrationOption("simdutf", .{})) {
         module.linkSystemLibrary("simdutf", dynamic_link_opts);
     } else {
-        const simdutf_dep = b.dependency("simdutf", .{
+        if (b.lazyDependency("simdutf", .{
             .target = target,
             .optimize = optimize,
-        });
-        module.linkLibrary(simdutf_dep.artifact("simdutf"));
-        try static_libs.append(simdutf_dep.artifact("simdutf").getEmittedBin());
+        })) |simdutf_dep| {
+            module.linkLibrary(simdutf_dep.artifact("simdutf"));
+            try static_libs.append(
+                simdutf_dep.artifact("simdutf").getEmittedBin(),
+            );
+        }
     }
 
     // Sentry
     if (self.config.sentry) {
-        const sentry_dep = b.dependency("sentry", .{
+        if (b.lazyDependency("sentry", .{
             .target = target,
             .optimize = optimize,
             .backend = .breakpad,
-        });
+        })) |sentry_dep| {
+            module.addImport(
+                "sentry",
+                sentry_dep.module("sentry"),
+            );
+            module.linkLibrary(sentry_dep.artifact("sentry"));
+            try static_libs.append(
+                sentry_dep.artifact("sentry").getEmittedBin(),
+            );
 
-        module.addImport("sentry", sentry_dep.module("sentry"));
-
-        // Sentry
-        module.linkLibrary(sentry_dep.artifact("sentry"));
-        try static_libs.append(sentry_dep.artifact("sentry").getEmittedBin());
-
-        // We also need to include breakpad in the static libs.
-        const breakpad_dep = sentry_dep.builder.dependency("breakpad", .{
-            .target = target,
-            .optimize = optimize,
-        });
-        try static_libs.append(breakpad_dep.artifact("breakpad").getEmittedBin());
+            // We also need to include breakpad in the static libs.
+            if (sentry_dep.builder.lazyDependency("breakpad", .{
+                .target = target,
+                .optimize = optimize,
+            })) |breakpad_dep| {
+                try static_libs.append(
+                    breakpad_dep.artifact("breakpad").getEmittedBin(),
+                );
+            }
+        }
     }
 
     // Wasm we do manually since it is such a different build.
@@ -283,7 +324,10 @@ pub fn add(
     // on x86_64.
     if (resolved_target.os.tag == .linux) {
         const triple = try resolved_target.linuxTriple(b.allocator);
-        module.addLibraryPath(.{ .cwd_relative = b.fmt("/usr/lib/{s}", .{triple}) });
+        const path = b.fmt("/usr/lib/{s}", .{triple});
+        if (std.fs.accessAbsolute(path, .{})) {
+            module.addLibraryPath(.{ .cwd_relative = path });
+        } else |_| {}
     }
 
     // C files
@@ -326,7 +370,7 @@ pub fn add(
 
     // We always require the system SDK so that our system headers are available.
     // This makes things like `os/log.h` available for cross-compiling.
-    if (resolved_target.isDarwin()) {
+    if (resolved_target.os.tag.isDarwin()) {
         try @import("apple_sdk").addPaths(b, module);
 
         const metallib = self.metallib.?;
@@ -337,82 +381,119 @@ pub fn add(
     }
 
     // Other dependencies, mostly pure Zig
-    module.addImport("opengl", b.dependency(
-        "opengl",
-        .{},
-    ).module("opengl"));
-    module.addImport("vaxis", b.dependency("vaxis", .{
+    if (b.lazyDependency("opengl", .{})) |dep| {
+        module.addImport("opengl", dep.module("opengl"));
+    }
+    if (b.lazyDependency("vaxis", .{})) |dep| {
+        module.addImport("vaxis", dep.module("vaxis"));
+    }
+    if (b.lazyDependency("wuffs", .{
         .target = target,
         .optimize = optimize,
-    }).module("vaxis"));
-    module.addImport("wuffs", b.dependency("wuffs", .{
+    })) |dep| {
+        module.addImport("wuffs", dep.module("wuffs"));
+    }
+    if (b.lazyDependency("libxev", .{
         .target = target,
         .optimize = optimize,
-    }).module("wuffs"));
-    module.addImport("xev", b.dependency("libxev", .{
+    })) |dep| {
+        module.addImport("xev", dep.module("xev"));
+    }
+    if (b.lazyDependency("z2d", .{})) |dep| {
+        module.addImport("z2d", b.addModule("z2d", .{
+            .root_source_file = dep.path("src/z2d.zig"),
+            .target = target,
+            .optimize = optimize,
+        }));
+    }
+    if (b.lazyDependency("ziglyph", .{
         .target = target,
         .optimize = optimize,
-    }).module("xev"));
-    module.addImport("z2d", b.addModule("z2d", .{
-        .root_source_file = b.dependency("z2d", .{}).path("src/z2d.zig"),
-        .target = target,
-        .optimize = optimize,
-    }));
-    module.addImport("ziglyph", b.dependency("ziglyph", .{
-        .target = target,
-        .optimize = optimize,
-    }).module("ziglyph"));
-    module.addImport("zf", b.dependency("zf", .{
+    })) |dep| {
+        module.addImport("ziglyph", dep.module("ziglyph"));
+    }
+    if (b.lazyDependency("zf", .{
         .target = target,
         .optimize = optimize,
         .with_tui = false,
-    }).module("zf"));
+    })) |dep| {
+        module.addImport("zf", dep.module("zf"));
+    }
 
     // Mac Stuff
-    if (resolved_target.isDarwin()) {
-        const objc_dep = b.dependency("zig_objc", .{
+    if (resolved_target.os.tag.isDarwin()) {
+        if (b.lazyDependency("zig_objc", .{
             .target = target,
             .optimize = optimize,
-        });
-        const macos_dep = b.dependency("macos", .{
-            .target = target,
-            .optimize = optimize,
-        });
+        })) |objc_dep| {
+            module.addImport(
+                "objc",
+                objc_dep.module("objc"),
+            );
+        }
 
-        module.addImport("objc", objc_dep.module("objc"));
-        module.addImport("macos", macos_dep.module("macos"));
-        module.linkLibrary(macos_dep.artifact("macos"));
-        try static_libs.append(macos_dep.artifact("macos").getEmittedBin());
+        if (b.lazyDependency("macos", .{
+            .target = target,
+            .optimize = optimize,
+        })) |macos_dep| {
+            module.addImport(
+                "macos",
+                macos_dep.module("macos"),
+            );
+            module.linkLibrary(
+                macos_dep.artifact("macos"),
+            );
+            try static_libs.append(
+                macos_dep.artifact("macos").getEmittedBin(),
+            );
+        }
 
         if (self.config.renderer == .opengl) {
             module.linkFramework("OpenGL", .{});
         }
+
+        // Apple platforms do not include libc libintl so we bundle it.
+        // This is LGPL but since our source code is open source we are
+        // in compliance with the LGPL since end users can modify this
+        // build script to replace the bundled libintl with their own.
+        if (b.lazyDependency("libintl", .{
+            .target = target,
+            .optimize = optimize,
+        })) |libintl_dep| {
+            module.linkLibrary(libintl_dep.artifact("intl"));
+            try static_libs.append(
+                libintl_dep.artifact("intl").getEmittedBin(),
+            );
+        }
     }
 
     // cimgui
-    const cimgui_dep = b.dependency("cimgui", .{
+    if (b.lazyDependency("cimgui", .{
         .target = target,
         .optimize = optimize,
-    });
-    module.addImport("cimgui", cimgui_dep.module("cimgui"));
-    module.linkLibrary(cimgui_dep.artifact("cimgui"));
-    try static_libs.append(cimgui_dep.artifact("cimgui").getEmittedBin());
+    })) |cimgui_dep| {
+        module.addImport("cimgui", cimgui_dep.module("cimgui"));
+        module.linkLibrary(cimgui_dep.artifact("cimgui"));
+        try static_libs.append(cimgui_dep.artifact("cimgui").getEmittedBin());
+    }
 
     // Highway
-    const highway_dep = b.dependency("highway", .{
+    if (b.lazyDependency("highway", .{
         .target = target,
         .optimize = optimize,
-    });
-    module.linkLibrary(highway_dep.artifact("highway"));
-    try static_libs.append(highway_dep.artifact("highway").getEmittedBin());
+    })) |highway_dep| {
+        module.linkLibrary(highway_dep.artifact("highway"));
+        try static_libs.append(highway_dep.artifact("highway").getEmittedBin());
+    }
 
     // utfcpp - This is used as a dependency on our hand-written C++ code
-    const utfcpp_dep = b.dependency("utfcpp", .{
+    if (b.lazyDependency("utfcpp", .{
         .target = target,
         .optimize = optimize,
-    });
-    module.linkLibrary(utfcpp_dep.artifact("utfcpp"));
-    try static_libs.append(utfcpp_dep.artifact("utfcpp").getEmittedBin());
+    })) |utfcpp_dep| {
+        module.linkLibrary(utfcpp_dep.artifact("utfcpp"));
+        try static_libs.append(utfcpp_dep.artifact("utfcpp").getEmittedBin());
+    }
 
     // If we're building an exe then we have additional dependencies.
     // if (module.kind != .lib) {
@@ -430,12 +511,14 @@ pub fn add(
     switch (self.config.app_runtime) {
         .none => {},
 
-        .glfw => glfw: {
-            const mach_glfw_dep = b.lazyDependency("mach_glfw", .{
-                .target = target,
-                .optimize = optimize,
-            }) orelse break :glfw;
-            module.addImport("glfw", mach_glfw_dep.module("mach-glfw"));
+        .glfw => if (b.lazyDependency("glfw", .{
+            .target = target,
+            .optimize = optimize,
+        })) |glfw_dep| {
+            module.addImport(
+                "glfw",
+                glfw_dep.module("glfw"),
+            );
         },
 
         .gtk => {},
@@ -444,6 +527,7 @@ pub fn add(
 
     self.help_strings.addModuleImport(module);
     self.unicode_tables.addModuleImport(module);
+    self.framedata.addModuleImport(module);
 
     return static_libs;
 }
